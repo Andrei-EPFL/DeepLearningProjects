@@ -56,11 +56,10 @@ class NN(torch.nn.Module):
 
 
 def train(model, train_input, train_target, train_classes,
-            test_imput, test_target, test_classes, 
-            n_epochs, batch_size, seed, device, validation_fraction=0.5, learning_rate=1e-3):
+            n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3):
         
         
-        torch.manual_seed(seed)
+        #torch.manual_seed(seed)
         criterion_classes = torch.nn.CrossEntropyLoss().to(device)
         criterion_label = torch.nn.CrossEntropyLoss().to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
@@ -128,7 +127,7 @@ def train(model, train_input, train_target, train_classes,
                 all_train_acc.append(train_accuracy)
                 all_validation_acc.append(val_accuracy)
 
-                scheduler.step(val_loss)
+                #scheduler.step(val_loss)
 
                 if epoch % 5 == 0:
 
@@ -165,8 +164,7 @@ if __name__ == '__main__':
 
     
     train_loss, val_loss, train_acc, val_acc = train(model, train_input, train_target, train_classes,
-            test_imput, test_target, test_classes, 
-            n_epochs, batch_size, seed, device, validation_fraction=0.3, learning_rate=1e-3)
+            n_epochs, batch_size, device, validation_fraction=0.3, learning_rate=1e-3)
 
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 

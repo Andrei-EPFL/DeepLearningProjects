@@ -1,8 +1,65 @@
 #!/usr/bin/env python
 import torch
 
-
 class NN(torch.nn.Module):
+
+    def __init__(self, out_channels_1=32, out_channels_2=64, kernel_size_1=5, kernel_size_2=3, nhidden=200):
+        super().__init__()
+
+        self.out_channels_1 = out_channels_1
+        self.out_channels_2 = out_channels_2
+        self.kernel_size_1 = kernel_size_1
+        self.kernel_size_2 = kernel_size_2
+        self.nhidden = nhidden
+
+        # Define layers for network
+        
+        # A ConvNet to identify the digits no weight sharing
+        self.conv1_1 = torch.nn.Conv2d(1, self.out_channels_1, self.kernel_size_1, stride=1, padding=0)
+        self.maxpool1_1 = torch.nn.MaxPool2d(kernel_size=2)
+        self.conv2_1 = torch.nn.Conv2d(self.out_channels_1, self.out_channels_2, self.kernel_size_2, stride=1, padding=0)
+        self.dense_1 = torch.nn.Linear(in_features = self.out_channels_2*3*3, out_features = self.nhidden)
+        self.denseout_1 = torch.nn.Linear(in_features = self.nhidden, out_features = 10)
+        
+
+        self.conv1_2 = torch.nn.Conv2d(1, self.out_channels_1, self.kernel_size_1, stride=1, padding=0)
+        self.maxpool1_2 = torch.nn.MaxPool2d(kernel_size=2)
+        self.conv2_2 = torch.nn.Conv2d(self.out_channels_1, self.out_channels_2, self.kernel_size_2, stride=1, padding=0)
+        self.dense_2 = torch.nn.Linear(in_features = self.out_channels_2*3*3, out_features = self.nhidden)
+        self.denseout_2 = torch.nn.Linear(in_features = self.nhidden, out_features = 10)
+        self.relu = torch.nn.ReLU()
+
+        # A dense network to know which is larger
+        self.dense1 = torch.nn.Linear(in_features = 20, out_features = 32)
+        self.dense2 = torch.nn.Linear(in_features = 32, out_features = 64)
+        self.dense3 = torch.nn.Linear(in_features = 64, out_features = 2)
+        self.sigmoid = torch.nn.Sigmoid()
+        self.softmax = torch.nn.Softmax(dim=1)
+
+
+
+    def forward(self, input):
+        in_1 = input[:, 0, :, :].unsqueeze(1)
+        in_2 = input[:, 1, :, :].unsqueeze(1)
+        out_1 = self.conv1_1(in_1)
+        out_1 = self.relu(self.maxpool1_1(out_1))
+        out_1 = self.relu(self.conv2_1(out_1))
+        out_1 = self.dense_1(out_1.view(out_1.shape[0], -1))
+        out_1 = self.denseout_1(out_1)
+
+        out_2 = self.conv1_2(in_2)
+        out_2 = self.relu(self.maxpool1_2(out_2))
+        out_2 = self.relu(self.conv2_2(out_2))
+        out_2 = self.dense_2(out_2.view(out_2.shape[0], -1))
+        out_2 = self.denseout_2(out_2)
+
+        out = self.dense1(torch.cat((out_1, out_2), dim=1))
+        out = self.relu(self.dense2(out))
+        out = self.softmax(self.dense3(out))
+
+        return out_1, out_2, out
+
+class NN_ws(torch.nn.Module):
 
     def __init__(self, out_channels_1=32, out_channels_2=64, kernel_size_1=5, kernel_size_2=3, nhidden=200):
         super().__init__()
@@ -56,12 +113,11 @@ class NN(torch.nn.Module):
 
 
 def train(model, train_input, train_target, train_classes,
-            n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3):
+            n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3, use_aux_loss = True):
         
         
         #torch.manual_seed(seed)
-        criterion_classes = torch.nn.CrossEntropyLoss().to(device)
-        criterion_label = torch.nn.CrossEntropyLoss().to(device)
+        criterion = torch.nn.CrossEntropyLoss().to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', verbose=True, )
 
@@ -85,23 +141,28 @@ def train(model, train_input, train_target, train_classes,
         all_train_acc = []
         all_validation_acc = []
 
+        print(f"Training model of class: {model.__class__.__name__}")
+        print(f"Training with aux loss: {use_aux_loss}.", flush=True)
+
         for epoch in range(n_epochs):
 
             train_losses = []
             train_accuracies = []
             for batch in range(0, train_input.shape[0], batch_size):
                 out_1, out_2, out = model(train_input.narrow(0, batch, batch_size))
-                loss_1 = criterion_classes(out_1, train_classes.narrow(0, batch, batch_size)[:,0])
-                loss_2 = criterion_classes(out_2, train_classes.narrow(0, batch, batch_size)[:,1])
-                loss_out = criterion_label(out, train_target.narrow(0, batch, batch_size))
 
                 out_class = torch.argmax(out, axis=1).to(int)
-                
                 accuracy = (out_class == train_target.narrow(0, batch, batch_size)).to(float).mean()
                 train_accuracies.append(accuracy.item())
 
+                loss_out = criterion(out, train_target.narrow(0, batch, batch_size))
+                if use_aux_loss:
+                    loss_1 = criterion(out_1, train_classes.narrow(0, batch, batch_size)[:,0])
+                    loss_2 = criterion(out_2, train_classes.narrow(0, batch, batch_size)[:,1])
+                    loss = loss_out + loss_1 + loss_2
+                else:
+                    loss = loss_out
 
-                loss = loss_out + loss_1 + loss_2
                 train_losses.append(loss.item())
                 model.zero_grad()
                 loss.backward()
@@ -110,11 +171,14 @@ def train(model, train_input, train_target, train_classes,
             
             with torch.no_grad():
                 out_1, out_2, out = model(validation_input)
-                loss_1 = criterion_classes(out_1, validation_classes[:,0])
-                loss_2 = criterion_classes(out_2, validation_classes[:,1])
-                loss_out = criterion_label(out, validation_target)
+                loss_out = criterion(out, validation_target)
+                if use_aux_loss:
+                    loss_1 = criterion(out_1, validation_classes[:,0])
+                    loss_2 = criterion(out_2, validation_classes[:,1])
+                    val_loss = (loss_out + loss_1 + loss_2).item()
+                else:
+                    val_loss = loss_out.item()
 
-                val_loss = (loss_out + loss_1 + loss_2).item()
                 train_loss = sum(train_losses) / len(train_losses)
 
                 out_class = torch.argmax(out, axis=1).to(int)
@@ -156,7 +220,7 @@ if __name__ == '__main__':
 
     
     train_input, train_target, train_classes, test_imput, test_target, test_classes = generate_pair_sets(5000)
-    model = NN()
+    model = NN_ws()
     n_epochs=100
     batch_size=5
     seed=42

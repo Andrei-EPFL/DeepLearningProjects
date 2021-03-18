@@ -4,7 +4,7 @@ import os
 import argparse
 
 from helpers import generate_pair_sets
-from model import NN, train
+from model import NN_ws, NN, train
 
 if __name__ == '__main__':
 
@@ -19,6 +19,9 @@ if __name__ == '__main__':
     parser.add_argument('-nepochs', default=50, type=int)
     parser.add_argument('-test', default=False, action='store_true')
     parser.add_argument('-single', default=False, action='store_true')
+    parser.add_argument('-no-weight-share', dest="no_weight_share", default=False, action='store_true')
+    parser.add_argument('-no-aux-loss', dest="no_aux_loss", default=False, action='store_true')
+
     args = parser.parse_args()
     
     train_input, train_target, train_classes, test_input, test_target, test_classes = generate_pair_sets(5000)
@@ -33,15 +36,21 @@ if __name__ == '__main__':
 
     
     if args.single:
-        model_fn = f"results/models/nn-seed{seed}.pt"
+
+        model_fn = f"results/models/nn-seed{seed}-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pt"
         if (not os.path.isfile(model_fn) or not args.test):
             torch.manual_seed(seed)
-            model = NN().to(device)   
+            if args.no_weight_share:
+                model = NN().to(device)
+            else:
+                model = NN_ws().to(device)   
+                
             train_loss, val_loss, train_acc, val_acc = train(model, train_input, train_target, train_classes,
-                    n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3)
+                    n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3, use_aux_loss=not args.no_aux_loss)
 
             
             torch.save(model.state_dict(), model_fn)
+            model.to('cpu')
 
             fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 
@@ -55,10 +64,13 @@ if __name__ == '__main__':
 
             ax[0].legend(loc=0)
             [a.set_xlabel('Epochs') for a in ax]
-            fig.savefig(f"results/plots/learning_curve_seed{seed}.png", dpi=200)
+            fig.savefig(f"results/plots/learning_curve_seed{seed}-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.png", dpi=200)
         
         else:
-            model = NN()
+            if args.no_weight_share:
+                model = NN()
+            else:
+                model = NN_ws()
             model.load_state_dict(torch.load(model_fn))
             
         model.eval()
@@ -86,7 +98,7 @@ if __name__ == '__main__':
             ax[0, i].set_title(f"{class_1[id_]} <= {class_2[id_]}?")
             ax[1, i].set_xlabel(f"Got {out_classes[id_]}. Expected {test_target[id_]}")
 
-        fig.savefig(f"results/plots/test.png", dpi=200)
+        fig.savefig(f"results/plots/test-seed{seed}-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.png", dpi=200)
     
 
     else:
@@ -97,16 +109,18 @@ if __name__ == '__main__':
         train_accs = []
         val_accs = []
         for seed in seeds:
-            model_fn = f"results/models/nn-seed{seed}.pt"
+            model_fn = f"results/models/nn-seed{seed}-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pt"
             
             if (not os.path.isfile(model_fn) or not args.test):
             
                 torch.manual_seed(seed)
-                model = NN().to(device)   
+                if args.no_weight_share:
+                    model = NN().to(device)
+                else:
+                    model = NN_ws().to(device)   
             
                 train_loss, val_loss, train_acc, val_acc = train(model, train_input, train_target, train_classes,
-                        test_input, test_target, test_classes, 
-                        n_epochs, batch_size, seed, device, validation_fraction=0.5, learning_rate=1e-3)
+                        n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3, use_aux_loss=not args.no_aux_loss)
 
                 train_losses.append(torch.Tensor(train_loss))
                 val_losses.append(torch.Tensor(val_loss))
@@ -126,10 +140,13 @@ if __name__ == '__main__':
 
                 ax[0].legend(loc=0)
                 [a.set_xlabel('Epochs') for a in ax]
-                fig.savefig(f"results/plots/learning_curve_seed{seed}.png", dpi=200)
+                fig.savefig(f"results/plots/learning_curve_seed{seed}-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.png", dpi=200)
 
             else:
-                model = NN()
+                if args.no_weight_share:
+                    model = NN()
+                else:
+                    model = NN_ws()
                 model.load_state_dict(torch.load(model_fn))
 
 
@@ -152,20 +169,19 @@ if __name__ == '__main__':
         print(f"Average test accuracy = {torch.mean(test_accuracies)} +/- {torch.std(test_accuracies)}")
 
         if args.test:
-            train_losses = torch.load("results/data/ensemble_train_loss.pkl")
-            val_losses = torch.load("results/data/ensemble_val_loss.pkl")
-            train_accs = torch.load("results/data/ensemble_train_acc.pkl")
-            val_accs = torch.load("results/data/ensemble_val_acc.pkl")
+            train_losses = torch.load(f"results/data/ensemble_train_loss-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pkl")
+            val_losses = torch.load(f"results/data/ensemble_val_loss-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pkl")
+            train_accs = torch.load(f"results/data/ensemble_train_acc-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pkl")
+            val_accs = torch.load(f"results/data/ensemble_val_acc-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pkl")
         else:
-            print(train_losses)
             train_losses = torch.stack(train_losses)
             val_losses = torch.stack(val_losses)
             train_accs = torch.stack(train_accs)
             val_accs = torch.stack(val_accs)
-            torch.save(train_losses, "results/data/ensemble_train_loss.pkl")
-            torch.save(val_losses, "results/data/ensemble_val_loss.pkl")
-            torch.save(train_accs, "results/data/ensemble_train_acc.pkl")
-            torch.save(val_accs, "results/data/ensemble_val_acc.pkl")
+            torch.save(train_losses, f"results/data/ensemble_train_loss-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pkl")
+            torch.save(val_losses, f"results/data/ensemble_val_loss-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pkl")
+            torch.save(train_accs, f"results/data/ensemble_train_acc-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pkl")
+            torch.save(val_accs, f"results/data/ensemble_val_acc-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pkl")
             
         
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
@@ -181,7 +197,7 @@ if __name__ == '__main__':
 
         ax[0].legend(loc=0)
         [a.set_xlabel('Epochs') for a in ax]
-        fig.savefig(f"results/plots/learning_curve_ensemble.png", dpi=200)
+        fig.savefig(f"results/plots/learning_curve_ensemble-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.png", dpi=200)
 
           
 

@@ -1,9 +1,15 @@
 #!/usr/bin/env python
-import torch
-from torch.nn.parameter import Parameter
-torch.set_grad_enabled ( False )
+from torch import empty, set_grad_enabled, manual_seed
+import math
+set_grad_enabled(False)
+
+def sigmoid(x):
+    return 1. / (1 + (-x).exp())
 
 class Module(object):
+    def __init__(self):
+        self.activation=None
+
     def forward(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -13,18 +19,48 @@ class Module(object):
     def param(self):
         return []
 
+    def zero_grad(self):
+        for param in self.param():
+            if param.grad is None:
+                param.grad = empty(param.shape).fill_(0)
+            else:
+                param.grad.fill_(0)
+
+
+class LossMSE(Module):
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, prediction, target):
+        error = (prediction - target)
+        loss =  error.unsqueeze(1).matmul(error.unsqueeze(1).permute(0, 2, 1)).squeeze().sum()
+        self.activation = error
+        return loss
+    
+    def backward(self):
+        return -2 * self.activation
+
+    def __call__(self, prediction, target):
+        return self.forward(prediction, target)
+
 class ReLU(Module):
 
+    def __init__(self, slope=1):
+
+        super().__init__()
+        self.slope = slope
+
     def forward(self, input):
-        return torch.clamp(input, min=0)
 
-    def gradient(self, input):
-        """ Return the derivative of the activation """
+        self.grad = empty(input.shape).fill_(0)
+        self.grad[input > 0] = self.slope
 
-        output = torch.zeros_like(input)
-        output[output > 0] = -1
+        return self.slope * input.clamp(min=0)
 
-        return output
+    def backward(self, *gradwrtoutput):
+        grad, = gradwrtoutput
+        return grad * self.grad
 
     def __call__(self, input):
         return self.forward(input)
@@ -32,12 +68,14 @@ class ReLU(Module):
 class Tanh(Module):
 
     def forward(self, input):
-        return torch.tanh(input, min=0)
+        self.grad = 1. / input.cosh().pow(2)
+        return input.tanh()
+    
+    def backward(self, *gradwrtoutput):
+        grad, = gradwrtoutput
+        return grad * self.grad
 
-    def gradient(self, input):
-        """ Return the derivative of the activation """
-        
-        return 1. / torch.pow(torch.cosh(input), 2)
+
     
     def __call__(self, input):
         return self.forward(input)
@@ -46,12 +84,14 @@ class Tanh(Module):
 class Sigmoid(Module):
 
     def forward(self, input):
-        return torch.sigmoid(input)
+        s = sigmoid(input)
+        self.grad = s * (1 - s)
+        return s
 
-    def gradient(self, input):
-        """ Return the derivative of the activation """
-        s = torch.sigmoid(input)
-        return  s * (1 - s)
+    def backward(self, *gradwrtoutput):
+        
+        grad, = gradwrtoutput
+        return  grad * self.grad
 
     def __call__(self, input):
         return self.forward(input)
@@ -61,50 +101,90 @@ class Linear(Module):
 
     def __init__(self, input_shape, output_units, batch_size):
 
+        super().__init__()
+
         #Initialize weights
 
-        self.weights = Parameter(torch.empty(size=(batch_size, output_units, input_shape)))
-        self.bias = Parameter(torch.empty(size=(batch_size, 1, output_units)))
+        self.weights = empty(size=(batch_size, output_units, input_shape)).normal_(mean=0, std=math.sqrt(2 / (input_shape + output_units) ))
+        self.bias = empty(size=(batch_size, output_units)).normal_(mean=0, std=math.sqrt(2 / (input_shape + output_units) ))
+        
+        self.zero_grad()
+
 
     def forward(self, input):
-        Z = torch.einsum('bkn,bnj->bkj', self.weights, input) + self.bias
-        return Z
+
+        
+        s = input.unsqueeze(1).matmul(self.weights.permute(0, 2, 1)).squeeze() + self.bias
+        self.activation = (input, s)
+
+        return s
 
     def backward(self, *gradwrtoutput):
+        input, s = self.activation
+        grad_s, = gradwrtoutput
+        grad_x = grad_s.unsqueeze(1).matmul(self.weights).squeeze()
 
-        raise NotImplementedError
+        self.weights.grad = self.weights.grad + grad_s[:, :, None] * input[:, None, :]
+        self.bias.grad = self.bias.grad + grad_s
+
+        return grad_x
 
     def param(self):
         return [self.weights, self.bias]
+
+    def __call__(self, input):
+        return self.forward(input)
 
 
 class Sequential(Module):
 
     def __init__(self, *input):
-
-        self.module_list=input
-        self.fwd_save = {}
-        for module in self.module_list:
-            self.fwd_save[module.__class__.__name__]=[]
-        self.x_list = []
-        self.params = []
+        super().__init__()
+        self.module_list=list(input)
+        
+        
     def forward(self, input):
-        output=0
-        self.fwd_save['Linear'].append(input)
+        output = input
         for i, module in enumerate(self.module_list):
-            self.fwd_save[module.__class__.__name__].append(module.forward(self.fwd_save[i]))
-        return self.fwd_save[-1]
+            output = module.forward(output)
+        return output
 
     def backward(self, *gradwrtoutput):
-
-        raise NotImplementedError
+        grad, = gradwrtoutput
+        
+        for i, module in enumerate(self.module_list[::-1]):
+            
+            grad = module.backward(grad)
 
     def param(self):
+        params = []
         for module in self.module_list:
-            self.params += module.param()
-        return self.params
+            params += module.param()
+        return params
+
+    def add(self, module):
+        self.module_list.append(module)
+
+    def __call__(self, input):
+        return self.forward(input)
+
+    def summary(self):
+        print(f"Layer\tN. params")
+        for module in self.module_list:
+            print(f"{module.__class__.__name__}\t{sum([param.shape[-2] * param.shape[-1] for param in module.param()])}")
 
 
 if __name__=='__main__':
-    m=Sigmoid()
-    print(m.__class__.__name__)
+    manual_seed(42)
+    
+    test = empty((10, 20)).fill_(1)
+    target = empty((10, 40)).fill_(1)
+    loss = LossMSE()
+    linear = Linear(20, 40, 10)
+    out = linear(test)
+    out = loss(out, target)
+    print(linear.backward(loss.backward())[:,0])
+    
+    
+
+    

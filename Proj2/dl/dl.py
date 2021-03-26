@@ -39,7 +39,8 @@ class LossMSE(Module):
         return loss
     
     def backward(self):
-        return -2 * self.activation
+        #return -2 * self.activation # this gives - twice the gradient as pytorch, weird
+        return self.activation
 
     def __call__(self, prediction, target):
         return self.forward(prediction, target)

@@ -1,48 +1,54 @@
-from torch import empty, manual_seed
+import torch
 import math
+import matplotlib.pyplot as plt
 
-from dl import dl
+
 
 def generate_disc_set(nb, one_hot_encode=True):
-    data = empty((nb, 2)).uniform_(0, 1)
+    data = torch.empty((nb, 2)).uniform_(0, 1)
     radius = (data - 0.5).pow(2).sum(axis=1)
     labels = (radius < 1./(2 * math.pi)).long()
     if one_hot_encode:
-        out = empty((data.shape[0], 2)).fill_(0).long()
+        out = torch.empty((data.shape[0], 2)).fill_(0).long()
         out[~labels.bool(),0] = 1
         out[labels.bool(),1] = 1
         return data, out
     else:
         return data, labels
 
+
 if __name__ == '__main__':
 
-    manual_seed(42)
+    torch.manual_seed(42)
     batch_size = 500
-    epochs = 10
+    epochs = 1
     learning_rate = 1e-3
 
-    train_input, train_target = generate_disc_set(1000)
-    test_input, test_target = generate_disc_set(1000)
-
-    model = dl.Sequential(dl.Linear(2, 25),
-                        #  dl.ReLU(),
-                        #  dl.Linear(25, 25),
-                        #  dl.ReLU(),
-                        #  dl.Linear(25, 25),
-                          dl.ReLU(),
-                          dl.Linear(25, 25),
-                          dl.ReLU(),
-                          dl.Linear(25, 2),
-                          dl.ReLU())
+    train_input, train_target = generate_disc_set(1000, one_hot_encode=True)
+    test_input, test_target = generate_disc_set(1000, one_hot_encode=True)
     
-    criterion = dl.LossMSE()
+    
+    model = torch.nn.Sequential(torch.nn.Linear(2, 25),
+                        #  torch.nn.ReLU(),
+                        #  torch.nn.Linear(25, 25),
+                        #  torch.nn.ReLU(),
+                        #  torch.nn.Linear(25, 25),
+                          torch.nn.ReLU(),
+                          torch.nn.Linear(25, 25),
+                          torch.nn.ReLU(),
+                          torch.nn.Linear(25, 2),
+                          torch.nn.ReLU())
+    
+    criterion = torch.nn.MSELoss()
+
     out = model(train_input)
     loss = criterion(out, train_target)
-    print(model[-2].weights)
-    exit()
+    
 
-    model.summary()
+    print(model[-2].weight)
+
+
+    exit()
     outputs = []
     for e in range(epochs):
 
@@ -60,10 +66,10 @@ if __name__ == '__main__':
             model.zero_grad()
             model.backward(criterion.backward())
 
-            for param in model.param():
+            #for param in model.param():
                 #old_param = param.clone()
                 
-                param = param - learning_rate * param.grad
+            #    param = param - learning_rate * param.grad
                 #print((old_param - param).mean())
             #    pass
             

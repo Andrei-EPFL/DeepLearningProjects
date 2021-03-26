@@ -34,7 +34,7 @@ class LossMSE(Module):
 
     def forward(self, prediction, target):
         error = (prediction - target)
-        loss =  error.unsqueeze(1).matmul(error.unsqueeze(1).permute(0, 2, 1)).squeeze().sum()
+        loss =  error.pow(2).mean()
         self.activation = error
         return loss
     
@@ -99,14 +99,14 @@ class Sigmoid(Module):
 
 class Linear(Module):
 
-    def __init__(self, input_shape, output_units, batch_size):
+    def __init__(self, input_features, output_features):
 
         super().__init__()
 
         #Initialize weights
-
-        self.weights = empty(size=(batch_size, output_units, input_shape)).normal_(mean=0, std=math.sqrt(2 / (input_shape + output_units) ))
-        self.bias = empty(size=(batch_size, output_units)).normal_(mean=0, std=math.sqrt(2 / (input_shape + output_units) ))
+        self.sqrtk = math.sqrt(1 / input_features)
+        self.weights = empty(size=(output_features, input_features)).uniform_(-self.sqrtk, self.sqrtk)
+        self.bias = empty(size=(output_features,)).uniform_(-self.sqrtk, self.sqrtk)
         
         self.zero_grad()
 
@@ -114,7 +114,7 @@ class Linear(Module):
     def forward(self, input):
 
         
-        s = input.unsqueeze(1).matmul(self.weights.permute(0, 2, 1)).squeeze() + self.bias
+        s = input.matmul(self.weights.t()).squeeze() + self.bias
         self.activation = (input, s)
 
         return s
@@ -122,10 +122,10 @@ class Linear(Module):
     def backward(self, *gradwrtoutput):
         input, s = self.activation
         grad_s, = gradwrtoutput
-        grad_x = grad_s.unsqueeze(1).matmul(self.weights).squeeze()
+        grad_x = grad_s.matmul(self.weights)
 
-        self.weights.grad = self.weights.grad + grad_s[:, :, None] * input[:, None, :]
-        self.bias.grad = self.bias.grad + grad_s
+        self.weights.grad = self.weights.grad + (grad_s[:, :, None] * input[:, None, :]).mean(axis=0)
+        self.bias.grad = self.bias.grad + grad_s.mean(axis=0)
 
         return grad_x
 
@@ -168,6 +168,9 @@ class Sequential(Module):
     def __call__(self, input):
         return self.forward(input)
 
+    def __getitem__(self, i):
+        return self.module_list[i]
+
     def summary(self):
         print(f"Layer\tN. params")
         for module in self.module_list:
@@ -180,7 +183,7 @@ if __name__=='__main__':
     test = empty((10, 20)).fill_(1)
     target = empty((10, 40)).fill_(1)
     loss = LossMSE()
-    linear = Linear(20, 40, 10)
+    linear = Linear(20, 40)
     out = linear(test)
     out = loss(out, target)
     print(linear.backward(loss.backward())[:,0])

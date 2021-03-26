@@ -57,7 +57,8 @@ if __name__ == '__main__':
             model.backward(criterion.backward())
 
             for param in model.param():
-                param = param - learning_rate * param.grad
+                new_param = param - learning_rate * param.grad
+                param.copy_(new_param)
             
             print(train_loss, train_accuracy)
 

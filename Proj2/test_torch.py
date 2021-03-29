@@ -21,13 +21,18 @@ if __name__ == '__main__':
 
     torch.manual_seed(42)
     batch_size = 100
-    epochs = 10
-    learning_rate = 1e-3
+    epochs = 30
+    learning_rate = 5e-1
 
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
-    test_input, test_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
+    test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
     
-    
+    #plt.scatter(train_input[train_labels.bool(),0], train_input[train_labels.bool(),1], c='r')
+    #plt.scatter(train_input[~train_labels.bool(),0], train_input[~train_labels.bool(),1], c='k')
+    ##plt.show()
+    print(f"Number in: {train_labels.sum()}, Number out: {1000 - train_labels.sum()}")
+    #exit()
+
     model = torch.nn.Sequential(torch.nn.Linear(2, 25),
                           torch.nn.ReLU(),
                           torch.nn.Linear(25, 25),
@@ -36,12 +41,11 @@ if __name__ == '__main__':
                           torch.nn.ReLU(),
                           torch.nn.Linear(25, 25),
                           torch.nn.ReLU(),
-                          torch.nn.Linear(25, 2),
-                          torch.nn.ReLU())
+                          torch.nn.Linear(25, 2))
     
     criterion = torch.nn.MSELoss()
 
-    
+    #optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
     
     for e in range(epochs):
 
@@ -54,16 +58,17 @@ if __name__ == '__main__':
             train_loss = criterion(out, train_target.narrow(0, batch, batch_size))
 
             train_accuracy = (out.argmax(axis=1) == train_target.narrow(0, batch, batch_size).argmax(axis=1)).float().mean()
-            
+            train_accuracies.append(train_accuracy.item())
             
             model.zero_grad()
             train_loss.backward()
-            
+            #optimizer.step()
+            #optimizer.zero_grad()
             with torch.no_grad():
                 for param in model.parameters():
-                    new_param = param - learning_rate * param.grad
-                    param.copy_(new_param)
+                    param -= learning_rate * param.grad
+                    
             
-            print(train_loss, train_accuracy)
-
+            #print(train_loss, train_accuracy)
+        print(torch.Tensor(train_accuracies).mean())
 

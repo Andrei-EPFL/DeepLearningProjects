@@ -18,8 +18,8 @@ def generate_disc_set(nb, one_hot_encode=True):
 if __name__ == '__main__':
 
     manual_seed(42)
-    batch_size = 100
-    epochs = 300
+    batch_size = 10
+    epochs = 200
     learning_rate = 5e-1
 
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
@@ -33,7 +33,8 @@ if __name__ == '__main__':
                           dl.ReLU(),
                           dl.Linear(25, 25),
                           dl.ReLU(),
-                          dl.Linear(25, 2))
+                          dl.Linear(25, 2),
+                          dl.Sigmoid())
     
     criterion = dl.LossMSE()
     

@@ -3,12 +3,37 @@ import math
 
 from dl import dl
 
+class Net(dl.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.fc1 = dl.Linear(2, 25)
+        self.relu1 = dl.ReLU()
+        self.fc2 = dl.Linear(25, 25)
+        self.relu2 = dl.ReLU()
+        self.fc3 = dl.Linear(25, 25)
+        self.relu3 = dl.ReLU()
+        self.fc4 = dl.Linear(25, 25)
+        self.relu4 = dl.ReLU()
+        self.fc5 = dl.Linear(25, 2)
+        self.sigmoid = dl.Sigmoid()
+                         
+    def forward(self, x):
+        self.input = x
+        self.input.set_createdby(None)
+        x = self.relu1(self.fc1(x))
+        x = self.relu2(self.fc2(x))
+        x = self.relu3(self.fc3(x))
+        x = self.relu4(self.fc4(x))
+        x = self.sigmoid(self.fc5(x))
+        self.output = x
+        return self.output
+
 def generate_disc_set(nb, one_hot_encode=True):
-    data = empty((nb, 2)).uniform_(0, 1)
+    data = dl.nTensor(size=(nb, 2)).uniform_(0, 1)
     radius = (data - 0.5).pow(2).sum(axis=1)
     labels = (radius < 1./(2 * math.pi)).long()
     if one_hot_encode:
-        out = empty((data.shape[0], 2)).fill_(0).float()
+        out = dl.nTensor(size=(data.shape[0], 2)).fill_(0).float()
         out[~labels.bool(),0] = 1
         out[labels.bool(),1] = 1
         return data, out, labels
@@ -16,7 +41,6 @@ def generate_disc_set(nb, one_hot_encode=True):
         return data, labels
 
 if __name__ == '__main__':
-
     manual_seed(42)
     batch_size = 10
     epochs = 200
@@ -24,19 +48,22 @@ if __name__ == '__main__':
 
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
     test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
+    
 
-    model = dl.Sequential(dl.Linear(2, 25),
-                          dl.ReLU(),
-                          dl.Linear(25, 25),
-                          dl.ReLU(),
-                          dl.Linear(25, 25),
-                          dl.ReLU(),
-                          dl.Linear(25, 25),
-                          dl.ReLU(),
-                          dl.Linear(25, 2),
-                          dl.Sigmoid())
+    model = Net()
+    # model = dl.Sequential(dl.Linear(2, 25),
+    #                       dl.ReLU(),
+    #                       dl.Linear(25, 25),
+    #                       dl.ReLU(),
+    #                       dl.Linear(25, 25),
+    #                       dl.ReLU(),
+    #                       dl.Linear(25, 25),
+    #                       dl.ReLU(),
+    #                       dl.Linear(25, 2),
+    #                       dl.Sigmoid())
     
     criterion = dl.LossMSE()
+    
     
     
     val_losses = []
@@ -57,8 +84,8 @@ if __name__ == '__main__':
             
             
             model.zero_grad()
-            model.backward(criterion.backward())
-
+            #model.backward(criterion.backward_())
+            criterion.backward()
             for param in model.param():
                 param-= learning_rate * param.grad
                 

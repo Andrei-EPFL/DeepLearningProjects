@@ -6,15 +6,34 @@ set_grad_enabled(False)
 def sigmoid(x):
     return 1. / (1 + (-x).exp())
 
+class nTensor(empty(0).__class__):
+    def __init__(self, *args, **kwargs):
+        super(nTensor, self).__init__(*args)
+        self.createdby = None
+
+    def set_createdby(self, instance):
+        self.createdby = instance
+        
 class Module(object):
     def __init__(self):
-        self.activation=None
+        self.input = None
+        self.output = None
+
+    def __call__(self, *args, **kwargs):
+        return self.forward(*args, **kwargs)
 
     def forward(self, *args, **kwargs):
         raise NotImplementedError
 
-    def backward(self, *args, **kwargs):
+    def backward_(self, *args, **kwargs):
         raise NotImplementedError
+
+    def backward(self):
+        grad = self.backward_()
+        module = self.input.createdby
+        while module:
+            grad = module.backward_(grad)
+            module = module.input.createdby
 
     def param(self):
         return []
@@ -22,7 +41,7 @@ class Module(object):
     def zero_grad(self):
         for param in self.param():
             if param.grad is None:
-                param.grad = empty(param.shape).fill_(0)
+                param.grad = nTensor(size=param.shape).fill_(0)
             else:
                 param.grad.fill_(0)
 
@@ -30,102 +49,93 @@ class Module(object):
 class LossMSE(Module):
 
     def __init__(self):
-        super().__init__()
+        super(Module, self).__init__()
+        self.error = None
 
     def forward(self, prediction, target):
-        error = (prediction - target)
-        loss =  error.pow(2).mean()
-        self.activation = error
-        return loss
+        self.input = prediction
+        self.error = (prediction - target)
+        self.output =  self.error.pow(2).mean()
+        self.output.set_createdby(self)
+        return self.output
     
-    def backward(self):
-        #return -2 * self.activation # this gives - twice the gradient as pytorch, weird
-        return self.activation
-
-    def __call__(self, prediction, target):
-        return self.forward(prediction, target)
-
+    def backward_(self):
+        #return -2 * self.error # this gives - twice the gradient as pytorch, weird
+        return self.error
+    
 class ReLU(Module):
 
     def __init__(self, slope=1):
 
-        super().__init__()
+        super(Module, self).__init__()
         self.slope = slope
 
     def forward(self, input):
-
-        self.grad = empty(input.shape).fill_(0)
+        self.input = input
+        self.grad = nTensor(size=input.shape).fill_(0)
         self.grad[input > 0] = self.slope
+        self.output = self.slope * input.clamp(min=0)
+        self.output.set_createdby(self)
+        return self.output
 
-        return self.slope * input.clamp(min=0)
-
-    def backward(self, *gradwrtoutput):
+    def backward_(self, *gradwrtoutput):
         grad, = gradwrtoutput
         return grad * self.grad
-
-    def __call__(self, input):
-        return self.forward(input)
     
 class Tanh(Module):
 
     def forward(self, input):
+        self.input = input
         self.grad = 1. / input.cosh().pow(2)
-        return input.tanh()
+        self.output = input.tanh()
+        self.output.set_createdby(self)
+        return self.output
     
-    def backward(self, *gradwrtoutput):
+    def backward_(self, *gradwrtoutput):
         grad, = gradwrtoutput
-        return grad * self.grad
-
-
-    
-    def __call__(self, input):
-        return self.forward(input)
-        
+        return grad * self.grad     
 
 class Sigmoid(Module):
 
     def forward(self, input):
+        self.input = input
         s = sigmoid(input)
         self.grad = s * (1 - s)
-        return s
+        self.output = s
+        self.output.set_createdby(self)
+        return self.output
 
-    def backward(self, *gradwrtoutput):
+    def backward_(self, *gradwrtoutput):
         
         grad, = gradwrtoutput
         return  grad * self.grad
-
-    def __call__(self, input):
-        return self.forward(input)
-
 
 class Linear(Module):
 
     def __init__(self, input_features, output_features):
 
-        super().__init__()
+        super(Module, self).__init__()
 
         #Initialize weights
         self.sqrtk = math.sqrt(1 / input_features)
-        self.weights = empty(size=(output_features, input_features)).uniform_(-self.sqrtk, self.sqrtk)
-        self.bias = empty(size=(output_features,)).uniform_(-self.sqrtk, self.sqrtk)
+        self.weights = nTensor(size=(output_features, input_features)).uniform_(-self.sqrtk, self.sqrtk)
+        self.bias = nTensor(size=(output_features,)).uniform_(-self.sqrtk, self.sqrtk)
         
         self.zero_grad()
 
 
     def forward(self, input):
-
-        
+        self.input = input
         s = input.matmul(self.weights.t()).squeeze() + self.bias
-        self.activation = (input, s)
+        self.output = s
+        self.output.set_createdby(self)
+        return self.output
 
-        return s
-
-    def backward(self, *gradwrtoutput):
-        input, s = self.activation
+    def backward_(self, *gradwrtoutput):
         grad_s, = gradwrtoutput
         grad_x = grad_s.matmul(self.weights)
 
-        self.weights.grad = self.weights.grad + (grad_s[:, :, None] * input[:, None, :]).mean(axis=0)
+        self.weights.grad = self.weights.grad + (grad_s[:, :, None] * self.input[:, None, :]).mean(axis=0)
         self.bias.grad = self.bias.grad + grad_s.mean(axis=0)
 
         return grad_x
@@ -133,29 +143,26 @@ class Linear(Module):
     def param(self):
         return [self.weights, self.bias]
 
-    def __call__(self, input):
-        return self.forward(input)
-
-
 class Sequential(Module):
 
     def __init__(self, *input):
-        super().__init__()
+        super(Module, self).__init__()
         self.module_list=list(input)
         
         
     def forward(self, input):
+        self.input = input
+        self.input.set_createdby(None)
         output = input
         for i, module in enumerate(self.module_list):
-            output = module.forward(output)
-        return output
+            output = module(output)
+        self.output = output
+        return self.output
 
     def backward(self, *gradwrtoutput):
         grad, = gradwrtoutput
-        
         for i, module in enumerate(self.module_list[::-1]):
-            
-            grad = module.backward(grad)
+            grad = module.backward_(grad)
 
     def param(self):
         params = []
@@ -166,29 +173,10 @@ class Sequential(Module):
     def add(self, module):
         self.module_list.append(module)
 
-    def __call__(self, input):
-        return self.forward(input)
-
     def __getitem__(self, i):
         return self.module_list[i]
 
     def summary(self):
         print(f"Layer\tN. params")
         for module in self.module_list:
-            print(f"{module.__class__.__name__}\t{sum([param.shape[-2] * param.shape[-1] for param in module.param()])}")
-
-
-if __name__=='__main__':
-    manual_seed(42)
-    
-    test = empty((10, 20)).fill_(1)
-    target = empty((10, 40)).fill_(1)
-    loss = LossMSE()
-    linear = Linear(20, 40)
-    out = linear(test)
-    out = loss(out, target)
-    print(linear.backward(loss.backward())[:,0])
-    
-    
-
-    
+            print(f"{module.__class__.__name__}\t{sum([param.shape[-2] * param.shape[-1] for param in module.param()])}")    

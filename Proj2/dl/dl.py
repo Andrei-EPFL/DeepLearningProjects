@@ -4,9 +4,22 @@ import math
 set_grad_enabled(False)
 
 def sigmoid(x):
-    return 1. / (1 + (-x).exp())
+    return nTensor(tensor=1. / (1 + (-x()).exp()))
 
-class nTensor(empty(0).__class__):
+
+class nTensor():
+    def __init__ (self, tensor=empty(0), created_by=None):
+        self.tensor = tensor
+        self.created_by = created_by
+    
+    def set_createdby(self, instance):
+        self.created_by = instance
+
+    def __call__(self):
+        return self.tensor 
+
+
+class oldnTensor(empty(0).__class__):
     def __init__(self, *args, **kwargs):
         super(nTensor, self).__init__(*args)
         self.createdby = None
@@ -30,20 +43,20 @@ class Module(object):
 
     def backward(self):
         grad = self.backward_()
-        module = self.input.createdby
+        module = self.input.created_by
         while module:
             grad = module.backward_(grad)
-            module = module.input.createdby
+            module = module.input.created_by
 
     def param(self):
         return []
 
     def zero_grad(self):
         for param in self.param():
-            if param.grad is None:
-                param.grad = nTensor(size=param.shape).fill_(0)
+            if param().grad is None:
+                param().grad = empty(size=param().shape).fill_(0)
             else:
-                param.grad.fill_(0)
+                param().grad.fill_(0)
 
 
 class LossMSE(Module):
@@ -54,9 +67,8 @@ class LossMSE(Module):
 
     def forward(self, prediction, target):
         self.input = prediction
-        self.error = (prediction - target)
-        self.output =  self.error.pow(2).mean()
-        self.output.set_createdby(self)
+        self.error = nTensor(tensor=prediction() - target(), created_by=self)
+        self.output = nTensor(tensor=self.error().pow(2).mean(), created_by=self)
         return self.output
     
     def backward_(self):
@@ -72,15 +84,15 @@ class ReLU(Module):
 
     def forward(self, input):
         self.input = input
-        self.grad = nTensor(size=input.shape).fill_(0)
-        self.grad[input > 0] = self.slope
-        self.output = self.slope * input.clamp(min=0)
-        self.output.set_createdby(self)
+        self.grad = nTensor(tensor=empty(size=input().shape).fill_(0))
+        self.grad.tensor[input() > 0] = self.slope
+        
+        self.output = nTensor(tensor=self.slope * input().clamp(min=0), created_by=self)
         return self.output
 
     def backward_(self, *gradwrtoutput):
         grad, = gradwrtoutput
-        return grad * self.grad
+        return nTensor(tensor=grad() * self.grad())
     
 class Tanh(Module):
 
@@ -100,15 +112,13 @@ class Sigmoid(Module):
     def forward(self, input):
         self.input = input
         s = sigmoid(input)
-        self.grad = s * (1 - s)
-        self.output = s
-        self.output.set_createdby(self)
+        self.grad = nTensor(tensor=s() * (1 - s()))
+        self.output = nTensor(tensor=s(), created_by=self)
         return self.output
 
     def backward_(self, *gradwrtoutput):
-        
         grad, = gradwrtoutput
-        return  grad * self.grad
+        return nTensor(tensor=grad() * self.grad())
 
 class Linear(Module):
 
@@ -118,25 +128,23 @@ class Linear(Module):
 
         #Initialize weights
         self.sqrtk = math.sqrt(1 / input_features)
-        self.weights = nTensor(size=(output_features, input_features)).uniform_(-self.sqrtk, self.sqrtk)
-        self.bias = nTensor(size=(output_features,)).uniform_(-self.sqrtk, self.sqrtk)
-        
+        self.weights = nTensor(tensor=empty(size=(output_features, input_features)).uniform_(-self.sqrtk, self.sqrtk))
+        self.bias = nTensor(tensor=empty(size=(output_features,)).uniform_(-self.sqrtk, self.sqrtk))        
         self.zero_grad()
 
 
     def forward(self, input):
         self.input = input
-        s = input.matmul(self.weights.t()).squeeze() + self.bias
-        self.output = s
-        self.output.set_createdby(self)
+        s = nTensor(tensor=input().matmul(self.weights().t()).squeeze() + self.bias())
+        self.output = nTensor(tensor=s(), created_by=self)
         return self.output
 
     def backward_(self, *gradwrtoutput):
         grad_s, = gradwrtoutput
-        grad_x = grad_s.matmul(self.weights)
+        grad_x = nTensor(tensor=grad_s().matmul(self.weights()))
 
-        self.weights.grad = self.weights.grad + (grad_s[:, :, None] * self.input[:, None, :]).mean(axis=0)
-        self.bias.grad = self.bias.grad + grad_s.mean(axis=0)
+        self.weights.tensor.grad = self.weights().grad + (grad_s()[:, :, None] * self.input()[:, None, :]).mean(axis=0)
+        self.bias.tensor.grad = self.bias().grad + grad_s().mean(axis=0)
 
         return grad_x
 
@@ -152,7 +160,6 @@ class Sequential(Module):
         
     def forward(self, input):
         self.input = input
-        self.input.set_createdby(None)
         output = input
         for i, module in enumerate(self.module_list):
             output = module(output)

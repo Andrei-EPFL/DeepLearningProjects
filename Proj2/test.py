@@ -1,7 +1,9 @@
-from torch import empty, manual_seed
+from torch import empty, manual_seed, set_grad_enabled
 import math
 
-from dl import dl
+import dl
+
+set_grad_enabled(False)
 
 class Net(dl.Module):
     def __init__(self):
@@ -62,17 +64,17 @@ if __name__ == '__main__':
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
     test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
     
-    model = Net()
-    # model = dl.Sequential(dl.Linear(2, 25),
-    #                       dl.ReLU(),
-    #                       dl.Linear(25, 25),
-    #                       dl.ReLU(),
-    #                       dl.Linear(25, 25),
-    #                       dl.ReLU(),
-    #                       dl.Linear(25, 25),
-    #                       dl.ReLU(),
-    #                       dl.Linear(25, 2),
-    #                       dl.Sigmoid())
+    #model = Net()
+    model = dl.Sequential(dl.Linear(2, 25),
+                          dl.ReLU(),
+                          dl.Linear(25, 25),
+                          dl.ReLU(),
+                          dl.Linear(25, 25),
+                          dl.ReLU(),
+                          dl.Linear(25, 25),
+                          dl.ReLU(),
+                          dl.Linear(25, 2),
+                          dl.Sigmoid())
     
     criterion = dl.LossMSE()
     

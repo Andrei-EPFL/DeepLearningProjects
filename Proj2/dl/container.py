@@ -3,16 +3,16 @@ from .module import Module
 class Sequential(Module):
 
     def __init__(self, *input):
-        super(Sequential, self).__init__()
+        super().__init__()
         self.module_list=list(input)
         
         
     def forward(self, input):
         self.input = input
-        self.input.set_created_by(None)
         output = input
         for i, module in enumerate(self.module_list):
             output = module(output)
+
         self.output = output
         return self.output
 

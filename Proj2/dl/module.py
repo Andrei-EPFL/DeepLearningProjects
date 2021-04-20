@@ -1,5 +1,8 @@
 from .ntensor import nTensor
 
+from torch import empty, set_grad_enabled
+set_grad_enabled(False)
+
 class Module(object):
     def __init__(self):
         self.input = None
@@ -11,8 +14,15 @@ class Module(object):
     def forward(self, *args, **kwargs):
         raise NotImplementedError
 
-    def backward(self, *args, **kwargs):
-        raise NotImplementedError
+    def backward(self, *gradwrtoutput):
+        grad, = gradwrtoutput
+        module = self.output.created_by
+
+        while module:
+            grad = module.backward(grad)
+            module = module.input.created_by
+        
+        return grad
 
     def param(self):
         return []
@@ -20,6 +30,6 @@ class Module(object):
     def zero_grad(self):
         for param in self.param():
             if param.grad is None:
-                param.grad = nTensor(size=param.shape).fill_(0)
+                param.grad = empty(size=param.tensor.shape).fill_(0)
             else:
                 param.grad.fill_(0)

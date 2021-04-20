@@ -56,6 +56,18 @@ if __name__ == '__main__':
     epochs = 50
     learning_rate = 5e-1
 
+    # import torch
+    # test_torch = torch.tensor([2], dtype=torch.float32)
+    # print(test_torch)
+    # print(type(test_torch))
+    # print(empty(0).__class__)
+    test = dl.nTensor([[2,3]])
+    print(type(test))
+    print(test)
+    print(test.shape)
+    print(test.created_by)
+    exit()
+
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
     test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
     
@@ -96,7 +108,7 @@ if __name__ == '__main__':
             model.zero_grad()
 
             #model.backward(criterion.backward_())
-            criterion.backward()
+            train_loss.backward()
 
             for param in model.param():
                 param.tensor-= learning_rate * param().grad

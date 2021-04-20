@@ -7,7 +7,31 @@ def sigmoid(x):
     return nTensor(tensor=1. / (1 + (-x()).exp()))
 
 
-class nTensor():
+class nTensor(empty(0).__class__):
+    def __init__(self, *args, created_by=None, **kwargs):
+        super().__init__()
+        self.created_by = created_by
+
+    def set_createdby(self, instance):
+        self.created_by = instance
+
+    # def backward(self):
+    #     if self.created_by == None:
+    #         raise RuntimeError("Error message")
+    #     else:
+    #         if tensor is loss:
+    #             module =self.created_by
+    #             grad = module.backward()
+    #         else:
+    #             grad = ones_like(self)
+            
+    #         while module:
+    #             grad = module.backward(grad)
+    #             module = module.input.created_by
+        
+    #     return grad
+            
+class oldnTensor():
     def __init__ (self, tensor=empty(0), created_by=None):
         self.tensor = tensor
         self.created_by = created_by
@@ -15,17 +39,16 @@ class nTensor():
     def set_createdby(self, instance):
         self.created_by = instance
 
+    def backward(self):
+        grad = nTensor(tensor=empty(self.tensor.shape).fill_(1))
+        module = self.created_by
+        while module:
+            grad = module.backward(grad)
+            module = module.input.created_by
+        return grad()
+
     def __call__(self):
         return self.tensor 
-
-
-class oldnTensor(empty(0).__class__):
-    def __init__(self, *args, **kwargs):
-        super(nTensor, self).__init__(*args)
-        self.createdby = None
-
-    def set_createdby(self, instance):
-        self.createdby = instance
         
 class Module(object):
     def __init__(self):
@@ -38,15 +61,8 @@ class Module(object):
     def forward(self, *args, **kwargs):
         raise NotImplementedError
 
-    def backward_(self, *args, **kwargs):
+    def backward(self, *args, **kwargs):
         raise NotImplementedError
-
-    def backward(self):
-        grad = self.backward_()
-        module = self.input.created_by
-        while module:
-            grad = module.backward_(grad)
-            module = module.input.created_by
 
     def param(self):
         return []
@@ -71,7 +87,7 @@ class LossMSE(Module):
         self.output = nTensor(tensor=self.error().pow(2).mean(), created_by=self)
         return self.output
     
-    def backward_(self):
+    def backward(self, grad):
         #return -2 * self.error # this gives - twice the gradient as pytorch, weird
         return self.error
     
@@ -90,7 +106,7 @@ class ReLU(Module):
         self.output = nTensor(tensor=self.slope * input().clamp(min=0), created_by=self)
         return self.output
 
-    def backward_(self, *gradwrtoutput):
+    def backward(self, *gradwrtoutput):
         grad, = gradwrtoutput
         return nTensor(tensor=grad() * self.grad())
     
@@ -103,7 +119,7 @@ class Tanh(Module):
         self.output.set_createdby(self)
         return self.output
     
-    def backward_(self, *gradwrtoutput):
+    def backward(self, *gradwrtoutput):
         grad, = gradwrtoutput
         return grad * self.grad     
 
@@ -116,7 +132,7 @@ class Sigmoid(Module):
         self.output = nTensor(tensor=s(), created_by=self)
         return self.output
 
-    def backward_(self, *gradwrtoutput):
+    def backward(self, *gradwrtoutput):
         grad, = gradwrtoutput
         return nTensor(tensor=grad() * self.grad())
 
@@ -139,11 +155,11 @@ class Linear(Module):
         self.output = nTensor(tensor=s(), created_by=self)
         return self.output
 
-    def backward_(self, *gradwrtoutput):
+    def backward(self, *gradwrtoutput):
         grad_s, = gradwrtoutput
         grad_x = nTensor(tensor=grad_s().matmul(self.weights()))
 
-        self.weights.tensor.grad = self.weights().grad + (grad_s()[:, :, None] * self.input()[:, None, :]).mean(axis=0)
+        self.weights.tensor.grad = self.weights().grad + (grad_s().t().mm(self.input()))
         self.bias.tensor.grad = self.bias().grad + grad_s().mean(axis=0)
 
         return grad_x
@@ -169,7 +185,7 @@ class Sequential(Module):
     def backward(self, *gradwrtoutput):
         grad, = gradwrtoutput
         for i, module in enumerate(self.module_list[::-1]):
-            grad = module.backward_(grad)
+            grad = module.backward(grad)
 
     def param(self):
         params = []

@@ -110,7 +110,9 @@ if __name__ == '__main__':
         val_accs = []
         for seed in seeds:
             model_fn = f"results/models/nn-seed{seed}-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pt"
+            
             if (not os.path.isfile(model_fn) or not args.test):
+            
                 torch.manual_seed(seed)
                 if args.no_weight_share:
                     model = NN().to(device)

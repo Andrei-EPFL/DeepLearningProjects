@@ -29,7 +29,7 @@ class Linear(Module):
 
         self.weights.grad = self.weights.grad + (grad_s.tensor[:, :, None] * self.input.tensor[:, None, :]).mean(axis=0)
         self.bias.grad = self.bias.grad + grad_s.tensor.mean(axis=0)
-    
+        self.input.grad = grad_x
         return grad_x
 
     def param(self):

@@ -13,10 +13,11 @@ class nTensor():
 
     def backward(self):
         module = self.created_by
-        grad = None
-
-        while module:
-            grad = module.backward(grad)
-            module = module.input.created_by
-        
-        return grad
+        if module:
+            grad = nTensor(tensor=empty(size=module.output.tensor.shape).fill_(1))
+            while module:
+                grad = module.backward(grad)
+                module = module.input.created_by
+            return grad
+        else:
+            raise RuntimeError("This tensor was not created by any module.")

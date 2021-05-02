@@ -7,9 +7,11 @@ class nTensor():
         self.tensor = tensor
         self.created_by = created_by
         self.grad = None
+        self.shape = self.tensor.shape
 
     def set_created_by(self, instance):
         self.created_by = instance
+
 
     def backward(self):
         module = self.created_by
@@ -21,3 +23,7 @@ class nTensor():
             return grad
         else:
             raise RuntimeError("This tensor was not created by any module.")
+    def __getitem__(self, id_):
+        return self.tensor[id_]
+    def __len__(self):
+        return len(self.tensor)

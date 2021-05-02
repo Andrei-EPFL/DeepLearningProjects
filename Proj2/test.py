@@ -5,6 +5,7 @@ import dl
 
 set_grad_enabled(False)
 
+
 class Net(dl.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -59,17 +60,17 @@ if __name__ == '__main__':
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
     test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
 
-    model = Net()
-    # model = dl.Sequential(dl.Linear(2, 25),
-    #                       dl.ReLU(),
-    #                       dl.Linear(25, 25),
-    #                       dl.ReLU(),
-    #                       dl.Linear(25, 25),
-    #                       dl.ReLU(),
-    #                       dl.Linear(25, 25),
-    #                       dl.ReLU(),
-    #                       dl.Linear(25, 2),
-    #                       dl.Sigmoid())
+    #model = Net()
+    model = dl.Sequential(dl.Linear(2, 25),
+                           dl.ReLU(),
+                           dl.Linear(25, 25),
+                           dl.ReLU(),
+                           dl.Linear(25, 25),
+                           dl.ReLU(),
+                           dl.Linear(25, 25),
+                           dl.ReLU(),
+                           dl.Linear(25, 2),
+                           dl.Sigmoid())
     
     criterion = dl.LossMSE()
     
@@ -93,8 +94,8 @@ if __name__ == '__main__':
             
             model.zero_grad()
             
-            #train_loss.backward()
-            model.backward(criterion.backward())
+            train_loss.backward()
+            #model.backward(criterion.backward())
             for param in model.param():
                 param.tensor-= learning_rate * param.grad
                 
@@ -114,5 +115,20 @@ if __name__ == '__main__':
             print(f"Epoch {e}: ")
             print(f"\tTrain loss: {sum(train_losses) / n_batches:.2e}\t Train acc: {sum(train_accuracies) / n_batches:.2f}")
             print(f"\tVal loss: {val_loss.tensor.item():.2e}\t Val acc: {val_accuracy.item():.2f}")
+
+    print(f"==> End of training, generating a new test set", flush=True)
+
+    test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
+    out = model(dl.nTensor(tensor=test_input))
+    test_loss = criterion(out, dl.nTensor(tensor=test_target))
+    out_labels = out.tensor.argmax(axis=1)
+    test_accuracy = (out_labels == test_target.argmax(axis=1)).float().mean()
+    test_err = 1-test_accuracy
+
+    print(f"Final test loss: {test_loss.tensor.item():.3f}\tFinal test acc: {test_accuracy:.2f}\tFinal test error {test_err:.2f}")
+    outfile = open("results/test_output.dat", 'w')
+    for i in range(len(test_input)):
+        outfile.write(f"{test_input[i,0]} {test_input[i,1]} {out_labels[i]} {test_labels[i]}\n")
+    outfile.close()
 
 

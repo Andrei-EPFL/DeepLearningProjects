@@ -67,5 +67,5 @@ if __name__ == '__main__':
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
     test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
 
-    #our_implem(train_input, train_target, train_labels)
-    pytorch_implem(train_input, train_target, train_labels)
+    our_implem(train_input, train_target, train_labels)
+    #pytorch_implem(train_input, train_target, train_labels)

@@ -1,5 +1,39 @@
 #!/usr/bin/env python
 import torch
+
+class AlexNet(torch.nn.Module):
+    def __init__(self, in_channels):
+        super().__init__()
+                                            # size 1x28x28
+        self.features = torch.nn.Sequential(torch.nn.Conv2d(in_channels, 64, kernel_size=(10, 10), stride=(4, 4), padding=(2, 2)),
+                                            torch.nn.ReLU(),
+                                            # 64x6x6
+                                            torch.nn.MaxPool2d (size=(3, 3), stride=(2, 2), dilation=(1, 1)),
+                                            torch.nn.Conv2d(64, 192, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),
+                                            torch.nn.ReLU(),
+                                            torch.nn.MaxPool2d (size=(3, 3), stride=(2, 2), dilation=(1, 1)),
+                                            
+                                            torch.nn.Conv2d(192, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+                                            torch.nn.ReLU(),
+                                            torch.nn.Conv2d(384, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+                                            torch.nn.ReLU(),
+                                            torch.nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+                                            torch.nn.ReLU(),
+                                            torch.nn.MaxPool2d (size=(3, 3), stride=(2, 2), dilation=(1, 1)))
+
+        self.classifier = torch.nn.Sequential(torch.nn.Dropout(p = 0.5),
+                                              torch.nn.Linear(in_features=9216, out_features=4096),
+                                              torch.nn.ReLU(),
+                                              torch.nn.Dropout(p = 0.5),
+                                              torch.nn.Linear(in_features=4096, out_features=4096),
+                                              torch.nn.ReLU(),
+                                              torch.nn.Linear(in_features=4096, out_features=10))
+        
+    def forward(self, x):
+        out = self.features(x)
+        out = self.classifier(out.view(out.shape[0], -1))
+        return out
+
 class ConvNet(torch.nn.Module):
     def __init__(self, in_channels, out_channels_1=32, 
                 out_channels_2=64, kernel_size_1=5,
@@ -14,13 +48,16 @@ class ConvNet(torch.nn.Module):
         self.n_classes = n_classes
 
         self.dummy = torch.zeros((1, self.in_channels, 14, 14))
-        self.conv = torch.nn.Sequential(torch.nn.Conv2d(in_channels, self.out_channels_1, self.kernel_size_1, stride=1, padding=1),
+        self.conv = torch.nn.Sequential(torch.nn.Conv2d(self.in_channels, self.out_channels_1, self.kernel_size_1, stride=1, padding=1),
                                         torch.nn.ReLU(),
                                         torch.nn.MaxPool2d(kernel_size=2),
                                         torch.nn.Conv2d(self.out_channels_1, self.out_channels_2, self.kernel_size_2, stride=1, padding=1),
                                         torch.nn.ReLU(),
                                         torch.nn.MaxPool2d(kernel_size=2))
         dummy_out = self.conv(self.dummy)
+        # n_elem = 1
+        # for d in dummy_out.shape:
+        #   n_elem = n_elem * d #(if the kernel size is different then 3 you might get a buggy answer, what do you think?)
         n_elem = dummy_out.shape[-1] * dummy_out.shape[-2] * dummy_out.shape[-3]
         self.dense = torch.nn.Sequential(torch.nn.Linear(in_features = n_elem, out_features = self.n_hidden),
                                         torch.nn.ReLU(),
@@ -30,7 +67,6 @@ class ConvNet(torch.nn.Module):
         out = self.conv(x)
         out = self.dense(out.view(out.shape[0], -1))
         return out
-
 
 
 class NN(torch.nn.Module):
@@ -177,6 +213,7 @@ def train(model, train_input, train_target, train_classes,
             
             
             with torch.no_grad():
+                ### here shouldn't the model be in evaluation mode to stop the pool layers?
                 out_1, out_2, out = model(validation_input)
                 loss_out = criterion(out, validation_target)
                 if use_aux_loss:

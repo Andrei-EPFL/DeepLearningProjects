@@ -8,13 +8,11 @@ class Sequential(Module):
         
         
     def forward(self, input):
-        self.input = input
         output = input
         for i, module in enumerate(self.module_list):
             output = module(output)
 
-        self.output = output
-        return self.output
+        return output
 
     def backward(self, *gradwrtoutput):
         grad, = gradwrtoutput

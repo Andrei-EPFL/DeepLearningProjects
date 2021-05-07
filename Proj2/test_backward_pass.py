@@ -21,38 +21,41 @@ def our_implem(train_input, train_target, train_labels):
 
     print("!!Our implementation!!")
     
-    relu = dl.ReLU()
+    #relu = dl.ReLU()
+    relu = dl.Tanh()
     criterion = dl.LossMSE()
 
     lin1 = dl.Linear(2, 25)
     lin2 = dl.Linear(25, 2)
     
     input = dl.nTensor(tensor=train_input)
+    input.backward()
+    # output1 = relu(lin1(input))
+    # output2 = (lin2(output1))
     
-    output1 = lin1(input)
-    output2 = relu(lin2(output1))
-    
-    print(output2.backward().tensor, "\n\n")
+    # print(output2.backward().tensor, "\n\n")
     #loss = criterion(output, dl.nTensor(tensor=train_target))
     #print((loss.backward().tensor))
-    print(input.grad.tensor)
+    print(input.grad)
 
 def pytorch_implem(train_input, train_target, train_labels):
     torch.set_grad_enabled(True)
 
     print("!!Pytorch implementation!!")
 
-    relu = torch.nn.ReLU()
+    # relu = torch.nn.ReLU()
+    relu = torch.nn.Tanh()
+
     criterion = torch.nn.MSELoss()
 
     lin1 = torch.nn.Linear(2, 25)
     lin2 = torch.nn.Linear(25, 2)
     input = torch.autograd.Variable(train_input, requires_grad=True)
-    
-    output1 = lin1(input)
-    output2 = relu(lin2(output1))
+    input.backward(torch.ones_like(input))
+    # output1 = relu(lin1(input))
+    # output2 = (lin2(output1))
 
-    print(output2.backward(torch.ones_like(output2)))
+    # print(output2.backward(torch.ones_like(output2)))
     #loss = criterion(output, train_target)
     #print(loss.backward())
     print(input.grad)
@@ -68,4 +71,4 @@ if __name__ == '__main__':
     test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
 
     our_implem(train_input, train_target, train_labels)
-    #pytorch_implem(train_input, train_target, train_labels)
+    pytorch_implem(train_input, train_target, train_labels)

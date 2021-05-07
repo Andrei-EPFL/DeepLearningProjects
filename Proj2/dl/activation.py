@@ -21,9 +21,7 @@ class _Activation(Module):
         self.grad = 0
 
     def forward(self, input):
-        self.input = input
-        self.output = self.function()
-        return self.output
+        return self.function()
     
     def backward(self, gradwrtoutput):
         return nTensor(tensor=gradwrtoutput.tensor * self.grad.tensor)

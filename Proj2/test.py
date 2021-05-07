@@ -21,14 +21,12 @@ class Net(dl.Module):
         self.sigmoid = dl.Sigmoid()
                          
     def forward(self, x):
-        self.input = x
         x = self.relu1(self.fc1(x))
         x = self.relu2(self.fc2(x))
         x = self.relu3(self.fc3(x))
         x = self.relu4(self.fc4(x))
         x = self.sigmoid(self.fc5(x))
-        self.output = x
-        return self.output
+        return x
 
     def param(self):
         params = []
@@ -60,17 +58,17 @@ if __name__ == '__main__':
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
     test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
 
-    #model = Net()
-    model = dl.Sequential(dl.Linear(2, 25),
-                           dl.ReLU(),
-                           dl.Linear(25, 25),
-                           dl.ReLU(),
-                           dl.Linear(25, 25),
-                           dl.ReLU(),
-                           dl.Linear(25, 25),
-                           dl.ReLU(),
-                           dl.Linear(25, 2),
-                           dl.Sigmoid())
+    model = Net()
+    # model = dl.Sequential(dl.Linear(2, 25),
+    #                        dl.ReLU(),
+    #                        dl.Linear(25, 25),
+    #                        dl.ReLU(),
+    #                        dl.Linear(25, 25),
+    #                        dl.ReLU(),
+    #                        dl.Linear(25, 25),
+    #                        dl.ReLU(),
+    #                        dl.Linear(25, 2),
+    #                        dl.Sigmoid())
     
     criterion = dl.LossMSE()
     

@@ -9,7 +9,9 @@ class Module(object):
         self.output = None
 
     def __call__(self, *args, **kwargs):
-        return self.forward(*args, **kwargs)
+        self.input = args[0]
+        self.output = self.forward(*args, **kwargs)
+        return self.output
 
     def forward(self, *args, **kwargs):
         raise NotImplementedError

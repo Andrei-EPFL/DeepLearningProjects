@@ -4,7 +4,12 @@ import torch
 def train(model, train_input, train_target, train_classes,
             n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3, use_aux_loss = True):
         
-        
+        pytorch_total_params = sum(p.numel() for p in model.parameters())
+        pytorch_total_params_rg = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+        print(f"Training model of class: {model.__class__.__name__}")
+        print(f"The model has: {pytorch_total_params} params and {pytorch_total_params_rg} params that require grad.")
+    
         #torch.manual_seed(seed)
         criterion = torch.nn.CrossEntropyLoss().to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)

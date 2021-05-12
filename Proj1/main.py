@@ -6,7 +6,7 @@ import argparse
 from helpers import generate_pair_sets
 
 from convnet import NN_ws, NN, ConvNet
-from resnet import ResNet, ResNet_ws
+from resnet import ResNet_NN, ResNet_NN_ws
 from train import train
 
 DIGITS = torch.arange(0, 10)
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-seed', default=42, type=int)
     parser.add_argument('-nepochs', default=50, type=int)
-    parser.add_argument('-model', default=False, type=str)
+    parser.add_argument('-model', type=str)
     parser.add_argument('-test', default=False, action='store_true')
     parser.add_argument('-single', default=False, action='store_true')
     parser.add_argument('-no-weight-share', dest="no_weight_share", default=False, action='store_true')
@@ -41,13 +41,11 @@ if __name__ == '__main__':
     batch_size=5
     seed=args.seed
 
-    
     if args.single:
 
-        model_fn = f"results/models/nn-seed{seed}-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pt"
+        model_fn = f"results/models/{args.model}_nn-seed{seed}-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.pt"
         if (not os.path.isfile(model_fn) or not args.test):
             torch.manual_seed(seed)
-            
             if args.model == "convnet":
                 if args.no_weight_share:
                     model = NN().to(device)
@@ -55,17 +53,17 @@ if __name__ == '__main__':
                     model = NN_ws().to(device)   
             elif args.model == "resnet":
                 if args.no_weight_share:
-                    model = ResNet().to(device)
+                    model = ResNet_NN().to(device)
                 else:
-                    model = ResNet_ws().to(device)
+                    model = ResNet_NN_ws().to(device)
             else:
-                return ValueError("The model: -model argument has to be convnet or resnet")
+                raise ValueError("The model: -model argument has to be convnet or resnet")
 
             train_loss, val_loss, train_acc, val_acc = train(model, train_input, train_target, train_classes,
                     n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3, use_aux_loss=not args.no_aux_loss)
 
             
-            torch.save(model.state_dict(), model_fn)
+            # torch.save(model.state_dict(), model_fn)
             model.to('cpu')
 
             fig, ax = plt.subplots(1, 2, figsize=(10, 5))
@@ -80,7 +78,7 @@ if __name__ == '__main__':
 
             ax[0].legend(loc=0)
             [a.set_xlabel('Epochs') for a in ax]
-            fig.savefig(f"results/plots/learning_curve_seed{seed}-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.png", dpi=200)
+            # fig.savefig(f"results/plots/learning_curve_seed{seed}-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.png", dpi=200)
         
         else:
             if args.model == "convnet":
@@ -90,11 +88,11 @@ if __name__ == '__main__':
                     model = NN_ws().to(device)   
             elif args.model == "resnet":
                 if args.no_weight_share:
-                    model = ResNet().to(device)
+                    model = ResNet_NN().to(device)
                 else:
-                    model = ResNet_ws().to(device)
+                    model = ResNet_NN_ws().to(device)
             else:
-                return ValueError("The model: -model argument has to be convnet or resnet")
+                raise ValueError("The model: -model argument has to be convnet or resnet")
 
             model.load_state_dict(torch.load(model_fn))
             
@@ -141,10 +139,18 @@ if __name__ == '__main__':
             if (not os.path.isfile(model_fn) or not args.test):
             
                 torch.manual_seed(seed)
-                if args.no_weight_share:
-                    model = NN().to(device)
+                if args.model == "convnet":
+                    if args.no_weight_share:
+                        model = NN().to(device)
+                    else:
+                        model = NN_ws().to(device)   
+                elif args.model == "resnet":
+                    if args.no_weight_share:
+                        model = ResNet_NN().to(device)
+                    else:
+                        model = ResNet_NN_ws().to(device)
                 else:
-                    model = NN_ws().to(device)   
+                    raise ValueError("The model: -model argument has to be convnet or resnet")
             
                 train_loss, val_loss, train_acc, val_acc = train(model, train_input, train_target, train_classes,
                         n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3, use_aux_loss=not args.no_aux_loss)
@@ -170,10 +176,18 @@ if __name__ == '__main__':
                 fig.savefig(f"results/plots/learning_curve_seed{seed}-al{int(not args.no_aux_loss)}-ws{int(not args.no_weight_share)}.png", dpi=200)
 
             else:
-                if args.no_weight_share:
-                    model = NN()
+                if args.model == "convnet":
+                    if args.no_weight_share:
+                        model = NN()
+                    else:
+                        model = NN_ws()   
+                elif args.model == "resnet":
+                    if args.no_weight_share:
+                        model = ResNet_NN()
+                    else:
+                        model = ResNet_NN_ws()
                 else:
-                    model = NN_ws()
+                    raise ValueError("The model: -model argument has to be convnet or resnet")
                 model.load_state_dict(torch.load(model_fn))
 
 

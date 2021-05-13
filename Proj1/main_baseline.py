@@ -4,7 +4,8 @@ import os
 import argparse
 
 from helpers import generate_pair_sets
-from model import train_bline, ConvNet
+from train import train_bline
+from convnet import ConvNet
 
 if __name__ == '__main__':
 
@@ -19,6 +20,7 @@ if __name__ == '__main__':
     parser.add_argument('-nepochs', default=50, type=int)
     parser.add_argument('-test', default=False, action='store_true')
     parser.add_argument('-single', default=False, action='store_true')
+    
     
 
     args = parser.parse_args()
@@ -37,13 +39,19 @@ if __name__ == '__main__':
     
     if args.single:
 
-        model_fn = f"results/models/baseline-seed{seed}.pt"
+        model_fn = f"results/convnet/models/baseline-seed{seed}.pt"
         if (not os.path.isfile(model_fn) or not args.test):
             torch.manual_seed(seed)
-            model = ConvNet(in_channels=2, n_classes=2).to(device)
+            model = torch.nn.Sequential(ConvNet(in_channels=2, n_classes=20),
+                                        torch.nn.Linear(in_features = 20, out_features = 32),
+                                        torch.nn.ReLU(),
+                                        torch.nn.Linear(in_features = 32, out_features = 64),
+                                        torch.nn.ReLU(),
+                                        torch.nn.Linear(in_features = 64, out_features = 2),
+                                        torch.nn.Softmax(dim=1)).to(device)
                 
             train_loss, val_loss, train_acc, val_acc = train_bline(model, train_input, train_target, train_classes,
-                    n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-4)
+                    n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3)
 
             
             torch.save(model.state_dict(), model_fn)
@@ -61,10 +69,11 @@ if __name__ == '__main__':
 
             ax[0].legend(loc=0)
             [a.set_xlabel('Epochs') for a in ax]
-            fig.savefig(f"results/plots/learning_curve_seed{seed}-baseline.png", dpi=200)
+            fig.savefig(f"results/convnet/plots/learning_curve_seed{seed}-baseline.png", dpi=200)
         
         else:
-            model = ConvNet(in_channels=2, n_classes=2)
+            model = torch.nn.Sequential(ConvNet(in_channels=2, n_classes=2),
+                                        torch.nn.Softmax(dim=1))
             model.load_state_dict(torch.load(model_fn))
             
         model.eval()
@@ -88,7 +97,7 @@ if __name__ == '__main__':
             ax[1, i].imshow(test_input[id_][1, :, :])
             ax[1, i].set_xlabel(f"Got {out_classes[id_]}. Expected {test_target[id_]}")
 
-        fig.savefig(f"results/plots/test-seed{seed}-baseline.png", dpi=200)
+        fig.savefig(f"results/convnet/plots/test-seed{seed}-baseline.png", dpi=200)
     
 
     else:
@@ -99,12 +108,13 @@ if __name__ == '__main__':
         train_accs = []
         val_accs = []
         for seed in seeds:
-            model_fn = f"results/models/baseline-seed{seed}.pt"
+            model_fn = f"results/convnet/models/baseline-seed{seed}.pt"
             
             if (not os.path.isfile(model_fn) or not args.test):
             
                 torch.manual_seed(seed)
-                model = ConvNet(in_channels=2, n_classes=2).to(device)
+                model = torch.nn.Sequential(ConvNet(in_channels=2, n_classes=2),
+                                        torch.nn.Softmax(dim=1)).to(device)
             
                 train_loss, val_loss, train_acc, val_acc = train_bline(model, train_input, train_target, train_classes,
                         n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-4)
@@ -127,10 +137,11 @@ if __name__ == '__main__':
 
                 ax[0].legend(loc=0)
                 [a.set_xlabel('Epochs') for a in ax]
-                fig.savefig(f"results/plots/learning_curve_seed{seed}-baseline.png", dpi=200)
+                fig.savefig(f"results/convnet/plots/learning_curve_seed{seed}-baseline.png", dpi=200)
 
             else:
-                model = ConvNet(in_channels=2, n_classes=2)
+                model = torch.nn.Sequential(ConvNet(in_channels=2, n_classes=2),
+                                        torch.nn.Softmax(dim=1)).to(device)
                 model.load_state_dict(torch.load(model_fn))
 
 
@@ -151,19 +162,19 @@ if __name__ == '__main__':
         print(f"Average test accuracy = {torch.mean(test_accuracies)} +/- {torch.std(test_accuracies)}")
 
         if args.test:
-            train_losses = torch.load(f"results/data/ensemble_train_loss-baseline.pkl")
-            val_losses = torch.load(f"results/data/ensemble_val_loss-baseline.pkl")
-            train_accs = torch.load(f"results/data/ensemble_train_acc-baseline.pkl")
-            val_accs = torch.load(f"results/data/ensemble_val_acc-baseline.pkl")
+            train_losses = torch.load(f"results/convnet/data/ensemble_train_loss-baseline.pkl")
+            val_losses = torch.load(f"results/convnet/data/ensemble_val_loss-baseline.pkl")
+            train_accs = torch.load(f"results/convnet/data/ensemble_train_acc-baseline.pkl")
+            val_accs = torch.load(f"results/convnet/data/ensemble_val_acc-baseline.pkl")
         else:
             train_losses = torch.stack(train_losses)
             val_losses = torch.stack(val_losses)
             train_accs = torch.stack(train_accs)
             val_accs = torch.stack(val_accs)
-            torch.save(train_losses, f"results/data/ensemble_train_loss-baseline.pkl")
-            torch.save(val_losses, f"results/data/ensemble_val_loss-baseline.pkl")
-            torch.save(train_accs, f"results/data/ensemble_train_acc-baseline.pkl")
-            torch.save(val_accs, f"results/data/ensemble_val_acc-baseline.pkl")
+            torch.save(train_losses, f"results/convnet/data/ensemble_train_loss-baseline.pkl")
+            torch.save(val_losses, f"results/convnet/data/ensemble_val_loss-baseline.pkl")
+            torch.save(train_accs, f"results/convnet/data/ensemble_train_acc-baseline.pkl")
+            torch.save(val_accs, f"results/convnet/data/ensemble_val_acc-baseline.pkl")
             
         
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
@@ -179,7 +190,7 @@ if __name__ == '__main__':
 
         ax[0].legend(loc=0)
         [a.set_xlabel('Epochs') for a in ax]
-        fig.savefig(f"results/plots/learning_curve_ensemble-baseline.png", dpi=200)
+        fig.savefig(f"results/convnet/plots/learning_curve_ensemble-baseline.png", dpi=200)
 
           
 

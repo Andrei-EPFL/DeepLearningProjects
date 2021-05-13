@@ -18,9 +18,9 @@ class ResBlock(torch.nn.Module):
         return y
 
 class ResNet(torch.nn.Module):
-    def __init__(self, nb_channels, kernel_size, nb_blocks):
+    def __init__(self, nb_channels, kernel_size, nb_blocks, in_channels=1):
         super().__init__()
-        self.conv0 = torch.nn.Conv2d(1, nb_channels, kernel_size=1)
+        self.conv0 = torch.nn.Conv2d(in_channels, nb_channels, kernel_size=1)
         self.resblocks = torch.nn.Sequential( *(ResBlock(nb_channels, kernel_size) for _ in range(nb_blocks)))
         self.avg = torch.nn.AvgPool2d(kernel_size=14)
         self.fc = torch.nn.Linear(nb_channels, 10)

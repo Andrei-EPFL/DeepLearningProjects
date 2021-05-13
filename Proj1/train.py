@@ -43,6 +43,7 @@ def train(model, train_input, train_target, train_classes,
             train_losses = []
             train_accuracies = []
             for batch in range(0, train_input.shape[0], batch_size):
+                model.train()
                 out_1, out_2, out = model(train_input.narrow(0, batch, batch_size))
 
                 out_class = torch.argmax(out, axis=1).to(int)
@@ -65,6 +66,7 @@ def train(model, train_input, train_target, train_classes,
             
             with torch.no_grad():
                 ### here shouldn't the model be in evaluation mode to stop the pool layers?
+                model.eval()
                 out_1, out_2, out = model(validation_input)
                 loss_out = criterion(out, validation_target)
                 if use_aux_loss:
@@ -167,8 +169,8 @@ def train_bline(model, train_input, train_target, train_classes,
 
                 if epoch % 5 == 0:
 
-                    print(f"Epoch {epoch:d}. Train loss = {train_loss}. Val. loss = {val_loss}")
-                    print(f"\t  Train acc = {train_accuracy}. Val. acc = {val_accuracy}")
+                    print(f"Epoch {epoch:d}. Train loss = {train_loss:.3e}. Val. loss = {val_loss:.3e}")
+                    print(f"\t  Train acc = {train_accuracy:.3e}. Val. acc = {val_accuracy:.3e}")
 
         return all_train_losses, all_validation_losses, all_train_acc, all_validation_acc
 

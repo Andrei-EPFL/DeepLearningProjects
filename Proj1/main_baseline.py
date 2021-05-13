@@ -5,7 +5,7 @@ import argparse
 
 from helpers import generate_pair_sets
 from train import train_bline
-from convnet import ConvNet
+from convnet import ConvNet, Baseline
 
 if __name__ == '__main__':
 
@@ -16,10 +16,10 @@ if __name__ == '__main__':
 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-seed', default=42, type=int)
+    parser.add_argument('-seeds', default=42, type=int, nargs='+')
     parser.add_argument('-nepochs', default=50, type=int)
     parser.add_argument('-test', default=False, action='store_true')
-    parser.add_argument('-single', default=False, action='store_true')
+    
     
     
 
@@ -34,29 +34,32 @@ if __name__ == '__main__':
     
     n_epochs=args.nepochs
     batch_size=5
-    seed=args.seed
+    
 
     
-    if args.single:
-
+    seeds = args.seeds
+    test_accuracies = []
+    train_losses = []
+    val_losses = []
+    train_accs = []
+    val_accs = []
+    for seed in seeds:
         model_fn = f"results/convnet/models/baseline-seed{seed}.pt"
+        
         if (not os.path.isfile(model_fn) or not args.test):
+        
             torch.manual_seed(seed)
-            model = torch.nn.Sequential(ConvNet(in_channels=2, n_classes=20),
-                                        torch.nn.Linear(in_features = 20, out_features = 32),
-                                        torch.nn.ReLU(),
-                                        torch.nn.Linear(in_features = 32, out_features = 64),
-                                        torch.nn.ReLU(),
-                                        torch.nn.Linear(in_features = 64, out_features = 2),
-                                        torch.nn.Softmax(dim=1)).to(device)
-                
+            model = Baseline().to(device)
+        
             train_loss, val_loss, train_acc, val_acc = train_bline(model, train_input, train_target, train_classes,
                     n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3)
 
-            
+            train_losses.append(torch.Tensor(train_loss))
+            val_losses.append(torch.Tensor(val_loss))
+            train_accs.append(torch.Tensor(train_acc))
+            val_accs.append(torch.Tensor(val_acc))
             torch.save(model.state_dict(), model_fn)
             model.to('cpu')
-
             fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 
             ax[0].plot(train_loss, label='train')
@@ -70,97 +73,29 @@ if __name__ == '__main__':
             ax[0].legend(loc=0)
             [a.set_xlabel('Epochs') for a in ax]
             fig.savefig(f"results/convnet/plots/learning_curve_seed{seed}-baseline.png", dpi=200)
-        
+
         else:
             model = torch.nn.Sequential(ConvNet(in_channels=2, n_classes=2),
-                                        torch.nn.Softmax(dim=1))
+                                    torch.nn.Softmax(dim=1)).to(device)
             model.load_state_dict(torch.load(model_fn))
-            
+
+
+
         model.eval()
 
-        out = model(test_input)
-        out_classes = torch.argmax(out.to('cpu'), axis=1).to(int)
-        
-        accuracy = (out_classes == test_target).to(float).mean()
+        #indices = torch.randperm(test_input.shape[0])
+        indices = torch.arange(test_input.shape[0])
+        out = model(test_input[indices[:1000]])
+
+        out_classes = torch.argmax(out.to('cpu'), axis=1)
+
+        accuracy = (out_classes == test_target[indices[:1000]]).to(float).mean()
+        test_accuracies.append(accuracy)
         print(f"Test accuracy = {accuracy}.")
-        
 
-        nrows = 5
-        indices = torch.randint(low=0, high=test_input.shape[0], size = (nrows,))
-
-        fig, ax = plt.subplots(2, nrows, figsize=((2*nrows, 2*2)))
-
-        for i in range(nrows):
-            id_ = indices[i]
-            print(id_)
-            ax[0, i].imshow(test_input[id_][0, :, :])
-            ax[1, i].imshow(test_input[id_][1, :, :])
-            ax[1, i].set_xlabel(f"Got {out_classes[id_]}. Expected {test_target[id_]}")
-
-        fig.savefig(f"results/convnet/plots/test-seed{seed}-baseline.png", dpi=200)
-    
-
-    else:
-        seeds = range(15)
-        test_accuracies = []
-        train_losses = []
-        val_losses = []
-        train_accs = []
-        val_accs = []
-        for seed in seeds:
-            model_fn = f"results/convnet/models/baseline-seed{seed}.pt"
-            
-            if (not os.path.isfile(model_fn) or not args.test):
-            
-                torch.manual_seed(seed)
-                model = torch.nn.Sequential(ConvNet(in_channels=2, n_classes=2),
-                                        torch.nn.Softmax(dim=1)).to(device)
-            
-                train_loss, val_loss, train_acc, val_acc = train_bline(model, train_input, train_target, train_classes,
-                        n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-4)
-
-                train_losses.append(torch.Tensor(train_loss))
-                val_losses.append(torch.Tensor(val_loss))
-                train_accs.append(torch.Tensor(train_acc))
-                val_accs.append(torch.Tensor(val_acc))
-                torch.save(model.state_dict(), model_fn)
-                model.to('cpu')
-                fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-
-                ax[0].plot(train_loss, label='train')
-                ax[0].plot(val_loss, label='val')
-                ax[0].set_ylabel('Loss')
-
-                ax[1].plot(train_acc, label='train')
-                ax[1].plot(val_acc, label='val')
-                ax[1].set_ylabel('Accuracy')
-
-                ax[0].legend(loc=0)
-                [a.set_xlabel('Epochs') for a in ax]
-                fig.savefig(f"results/convnet/plots/learning_curve_seed{seed}-baseline.png", dpi=200)
-
-            else:
-                model = torch.nn.Sequential(ConvNet(in_channels=2, n_classes=2),
-                                        torch.nn.Softmax(dim=1)).to(device)
-                model.load_state_dict(torch.load(model_fn))
-
-
-
-            model.eval()
-
-            #indices = torch.randperm(test_input.shape[0])
-            indices = torch.arange(test_input.shape[0])
-            out = model(test_input[indices[:1000]])
-
-            out_classes = torch.argmax(out.to('cpu'), axis=1)
-
-            accuracy = (out_classes == test_target[indices[:1000]]).to(float).mean()
-            test_accuracies.append(accuracy)
-            print(f"Test accuracy = {accuracy}.")
-
-        test_accuracies = torch.Tensor(test_accuracies)
-        print(f"Average test accuracy = {torch.mean(test_accuracies)} +/- {torch.std(test_accuracies)}")
-
+    test_accuracies = torch.Tensor(test_accuracies)
+    print(f"Average test accuracy = {torch.mean(test_accuracies)} +/- {torch.std(test_accuracies)}")
+    if len(args.seeds) > 1:
         if args.test:
             train_losses = torch.load(f"results/convnet/data/ensemble_train_loss-baseline.pkl")
             val_losses = torch.load(f"results/convnet/data/ensemble_val_loss-baseline.pkl")
@@ -192,6 +127,6 @@ if __name__ == '__main__':
         [a.set_xlabel('Epochs') for a in ax]
         fig.savefig(f"results/convnet/plots/learning_curve_ensemble-baseline.png", dpi=200)
 
-          
+            
 
             

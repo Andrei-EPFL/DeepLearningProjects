@@ -119,3 +119,44 @@ class NN_ws(torch.nn.Module):
         out_2 = self.conv(in_2)
         out = self.dense(torch.cat((out_1, out_2), dim=1))
         return out_1, out_2, out
+
+
+class Baseline(torch.nn.Module):
+
+    def __init__(self, out_channels_1=32, out_channels_2=64, kernel_size_1=5, kernel_size_2=3, n_hidden=200):
+        super().__init__()
+
+        self.out_channels_1 = out_channels_1
+        self.out_channels_2 = out_channels_2
+        self.kernel_size_1 = kernel_size_1
+        self.kernel_size_2 = kernel_size_2
+        self.n_hidden = n_hidden
+
+        # Define layers for network
+        
+        # A ConvNet to identify the digits
+        self.conv = ConvNet(in_channels=2, n_classes=20, 
+                            out_channels_1=self.out_channels_1,
+                            out_channels_2=self.out_channels_2,
+                            kernel_size_1=self.kernel_size_1,
+                            kernel_size_2=self.kernel_size_2,
+                            n_hidden=self.n_hidden)
+
+        # A dense network to know which is larger
+        self.dense = torch.nn.Sequential(torch.nn.Linear(in_features = 20, out_features = 32),
+                                        torch.nn.ReLU(),
+                                        torch.nn.Linear(in_features = 32, out_features = 64),
+                                        torch.nn.ReLU(),
+                                        torch.nn.Linear(in_features = 64, out_features = 2),
+                                        torch.nn.Softmax(dim=1))
+
+
+
+    def forward(self, input):
+        
+        
+        out = self.conv(input)
+        out = self.dense(out)
+        return out
+
+

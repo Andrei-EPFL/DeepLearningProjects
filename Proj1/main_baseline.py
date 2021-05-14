@@ -6,6 +6,7 @@ import argparse
 from helpers import generate_pair_sets
 from train import train_bline
 from convnet import ConvNet, Baseline
+from resnet import ResNet_Baseline
 
 if __name__ == '__main__':
 
@@ -18,6 +19,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-seeds', default=42, type=int, nargs='+')
     parser.add_argument('-nepochs', default=50, type=int)
+    parser.add_argument('-model', default='convnet', type=str)
     parser.add_argument('-test', default=False, action='store_true')
     
     
@@ -44,12 +46,17 @@ if __name__ == '__main__':
     train_accs = []
     val_accs = []
     for seed in seeds:
-        model_fn = f"results/convnet/models/baseline-seed{seed}.pt"
+        model_fn = f"results/{args.model}/models/baseline-seed{seed}.pt"
         
         if (not os.path.isfile(model_fn) or not args.test):
         
             torch.manual_seed(seed)
-            model = Baseline().to(device)
+            if args.model == 'convnet':
+                model = Baseline().to(device)
+            elif args.model == 'resnet':
+                model = ResNet_Baseline().to(device)
+            else:
+                raise ValueError("-model must be either convnet or resnet")
         
             train_loss, val_loss, train_acc, val_acc = train_bline(model, train_input, train_target, train_classes,
                     n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3)
@@ -72,11 +79,15 @@ if __name__ == '__main__':
 
             ax[0].legend(loc=0)
             [a.set_xlabel('Epochs') for a in ax]
-            fig.savefig(f"results/convnet/plots/learning_curve_seed{seed}-baseline.png", dpi=200)
+            fig.savefig(f"results/{args.model}/plots/learning_curve_seed{seed}-baseline.png", dpi=200)
 
         else:
-            model = torch.nn.Sequential(ConvNet(in_channels=2, n_classes=2),
-                                    torch.nn.Softmax(dim=1)).to(device)
+            if args.model == 'convnet':
+                model = Baseline()
+            elif args.model == 'resnet':
+                model = ResNet_Baseline()
+            else:
+                raise ValueError("-model must be either convnet or resnet")
             model.load_state_dict(torch.load(model_fn))
 
 
@@ -97,19 +108,19 @@ if __name__ == '__main__':
     print(f"Average test accuracy = {torch.mean(test_accuracies)} +/- {torch.std(test_accuracies)}")
     if len(args.seeds) > 1:
         if args.test:
-            train_losses = torch.load(f"results/convnet/data/ensemble_train_loss-baseline.pkl")
-            val_losses = torch.load(f"results/convnet/data/ensemble_val_loss-baseline.pkl")
-            train_accs = torch.load(f"results/convnet/data/ensemble_train_acc-baseline.pkl")
-            val_accs = torch.load(f"results/convnet/data/ensemble_val_acc-baseline.pkl")
+            train_losses = torch.load(f"results/{args.model}/data/ensemble_train_loss-baseline.pkl")
+            val_losses = torch.load(f"results/{args.model}/data/ensemble_val_loss-baseline.pkl")
+            train_accs = torch.load(f"results/{args.model}/data/ensemble_train_acc-baseline.pkl")
+            val_accs = torch.load(f"results/{args.model}/data/ensemble_val_acc-baseline.pkl")
         else:
             train_losses = torch.stack(train_losses)
             val_losses = torch.stack(val_losses)
             train_accs = torch.stack(train_accs)
             val_accs = torch.stack(val_accs)
-            torch.save(train_losses, f"results/convnet/data/ensemble_train_loss-baseline.pkl")
-            torch.save(val_losses, f"results/convnet/data/ensemble_val_loss-baseline.pkl")
-            torch.save(train_accs, f"results/convnet/data/ensemble_train_acc-baseline.pkl")
-            torch.save(val_accs, f"results/convnet/data/ensemble_val_acc-baseline.pkl")
+            torch.save(train_losses, f"results/{args.model}/data/ensemble_train_loss-baseline.pkl")
+            torch.save(val_losses, f"results/{args.model}/data/ensemble_val_loss-baseline.pkl")
+            torch.save(train_accs, f"results/{args.model}/data/ensemble_train_acc-baseline.pkl")
+            torch.save(val_accs, f"results/{args.model}/data/ensemble_val_acc-baseline.pkl")
             
         
         fig, ax = plt.subplots(1, 2, figsize=(10, 5))
@@ -125,7 +136,7 @@ if __name__ == '__main__':
 
         ax[0].legend(loc=0)
         [a.set_xlabel('Epochs') for a in ax]
-        fig.savefig(f"results/convnet/plots/learning_curve_ensemble-baseline.png", dpi=200)
+        fig.savefig(f"results/{args.model}/plots/learning_curve_ensemble-baseline.png", dpi=200)
 
             
 

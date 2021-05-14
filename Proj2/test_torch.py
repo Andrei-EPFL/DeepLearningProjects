@@ -2,8 +2,6 @@ import torch
 import math
 import matplotlib.pyplot as plt
 
-
-
 def generate_disc_set(nb, one_hot_encode=True):
     data = torch.empty((nb, 2)).uniform_(0, 1)
     radius = (data - 0.5).pow(2).sum(axis=1)

@@ -52,7 +52,7 @@ def generate_disc_set(nb, one_hot_encode=True):
 if __name__ == '__main__':
     manual_seed(42)
     batch_size = 10
-    epochs = 100
+    epochs = 200
     learning_rate = 5e-1
     
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
@@ -72,24 +72,14 @@ if __name__ == '__main__':
     
     criterion = dl.LossMSE()
     
-    val_losses = []
-    val_accuracies = []
     for e in range(epochs):
-
-        train_losses = []
-        train_accuracies = []
-        
+    
         n_batches = train_input.shape[0] // batch_size
         for batch in range(0, train_input.shape[0], batch_size):
             out = model(dl.nTensor(tensor=train_input.narrow(0, batch, batch_size)))
             
             train_loss = criterion(out, dl.nTensor(tensor=train_target.narrow(0, batch, batch_size)))
-            train_losses.append(train_loss.tensor.item())
-            
-            train_accuracy = (out.tensor.argmax(axis=1) == train_target.narrow(0, batch, batch_size).argmax(axis=1)).float().mean()
-            train_accuracies.append(train_accuracy.item())
-            
-            
+                        
             model.zero_grad()
             
             train_loss.backward()
@@ -129,23 +119,4 @@ if __name__ == '__main__':
         outfile.write(f"{test_input[i,0]} {test_input[i,1]} {out_labels[i]} {test_labels[i]}\n")
     outfile.close()
 
-
-
-    mseloss = dl.LossMSE()
-
-    in_  = train_input[2:4]
-    tar_ = train_target[2:4]
-    lr = 0.1
-    in_n = dl.nTensor(tensor=in_)
-
-    for k in range(15):
-        out = model(in_n)
-        loss = mseloss(out, dl.nTensor(tensor=tar_))
-        model.zero_grad()
-        loss.backward()
-        print(k, " Before: ", in_n.tensor)
-        in_n.tensor = in_n.tensor + lr * in_n.grad/1000
-        print("After: ",in_n.tensor)
-        print("Grad: ", in_n.grad/1000)
-        print("\n")
 

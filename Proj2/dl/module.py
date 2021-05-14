@@ -22,8 +22,8 @@ class Module(object):
 
         while module:
             grad = module.backward(grad)
+            module.input.grad = grad.tensor
             module = module.input.created_by
-        
         return grad
 
     def param(self):

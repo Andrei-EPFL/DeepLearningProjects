@@ -14,11 +14,6 @@ class Sequential(Module):
 
         return output
 
-    def backward(self, *gradwrtoutput):
-        grad, = gradwrtoutput
-        for i, module in enumerate(self.module_list[::-1]):
-            grad = module.backward(grad)
-
     def param(self):
         params = []
         for module in self.module_list:

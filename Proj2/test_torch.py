@@ -18,8 +18,8 @@ def generate_disc_set(nb, one_hot_encode=True):
 if __name__ == '__main__':
 
     torch.manual_seed(42)
-    batch_size = 100
-    epochs = 30
+    batch_size = 10
+    epochs = 100
     learning_rate = 5e-1
 
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
@@ -39,22 +39,27 @@ if __name__ == '__main__':
                           torch.nn.ReLU(),
                           torch.nn.Linear(25, 25),
                           torch.nn.ReLU(),
-                          torch.nn.Linear(25, 2))
+                          torch.nn.Linear(25, 2),
+                          torch.nn.Sigmoid())
     
     criterion = torch.nn.MSELoss()
 
     #optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
     
+    val_losses = []
+    val_accuracies = []
     for e in range(epochs):
 
         train_losses = []
         train_accuracies = []
         
+        n_batches = train_input.shape[0] // batch_size
         for batch in range(0, train_input.shape[0], batch_size):
             out = model(train_input.narrow(0, batch, batch_size))
             
             train_loss = criterion(out, train_target.narrow(0, batch, batch_size))
-
+            train_losses.append(train_loss.item())
+            
             train_accuracy = (out.argmax(axis=1) == train_target.narrow(0, batch, batch_size).argmax(axis=1)).float().mean()
             train_accuracies.append(train_accuracy.item())
             
@@ -68,5 +73,37 @@ if __name__ == '__main__':
                     
             
             #print(train_loss, train_accuracy)
-        print(torch.Tensor(train_accuracies).mean())
+        # print(torch.Tensor(train_accuracies).mean())
+        out = model(test_input)
+        val_loss = criterion(out, test_target)
+        val_losses.append(val_loss.item())
+        val_accuracy = (out.argmax(axis=1) == test_target.argmax(axis=1)).float().mean()
+        val_accuracies.append(val_accuracy.item())
 
+        if e % 10 == 0:
+            print(f"Epoch {e}: ")
+            print(f"\tTrain loss: {sum(train_losses) / n_batches:.2e}\t Train acc: {sum(train_accuracies) / n_batches:.2f}")
+            print(f"\tVal loss: {val_loss.item():.2e}\t Val acc: {val_accuracy.item():.2f}")
+
+    print(f"==> End of training, generating a new test set", flush=True)
+
+    mseloss = torch.nn.MSELoss()
+
+    in_n  = train_input[2:4]
+    tar_ = train_target[2:4]
+    lr = 0.1
+    in_n.requires_grad_()
+    optimizer = torch.optim.SGD([in_n], lr=1e-1)
+    for k in range(15):
+        out = model(in_n)
+        loss = - mseloss(out, tar_)
+        optimizer.zero_grad()
+        loss.backward()
+        print(k, " Before: ", in_n)
+        optimizer.step()
+        # with torch.no_grad():
+        #     in_n = in_n + lr * in_n.grad
+        print("After: ",in_n)
+        print("Grad: ", in_n.grad)
+
+        print("\n")

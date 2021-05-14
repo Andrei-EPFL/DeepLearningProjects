@@ -12,17 +12,16 @@ class nTensor():
     def set_created_by(self, instance):
         self.created_by = instance
 
-
     def backward(self):
         module = self.created_by
-        if module:
-            grad = nTensor(tensor=empty(size=module.output.tensor.shape).fill_(1))
-            while module:
-                grad = module.backward(grad)
-                module = module.input.created_by
-            return grad
-        else:
-            raise RuntimeError("This tensor was not created by any module.")
+        grad = nTensor(tensor=empty(size=self.tensor.shape).fill_(1))
+        self.grad = grad.tensor
+        while module:
+            grad = module.backward(grad)
+            module.input.grad = grad.tensor
+            module = module.input.created_by
+        return grad
+
     def __getitem__(self, id_):
         return self.tensor[id_]
     def __len__(self):

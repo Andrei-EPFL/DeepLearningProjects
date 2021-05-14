@@ -59,8 +59,15 @@ class Linear(Module):
         grad_s = gradwrtoutput
         grad_x = nTensor(tensor=grad_s.tensor.matmul(self.weights.tensor))
 
-        self.weights.grad = self.weights.grad + (grad_s.tensor[:, :, None] * self.input.tensor[:, None, :]).mean(axis=0)
-        self.bias.grad = self.bias.grad + grad_s.tensor.mean(axis=0)
+        if len(grad_s.shape) == 2 and len(self.input.shape) == 2:
+            self.weights.grad = self.weights.grad + (grad_s.tensor[:, :, None] * self.input.tensor[:, None, :]).mean(axis=0)
+            self.bias.grad = self.bias.grad + grad_s.tensor.mean(axis=0)
+        elif len(grad_s.shape) == 1 and len(self.input.shape) == 1:
+            self.weights.grad = self.weights.grad + (grad_s.tensor[:, None] * self.input.tensor[None, :]).mean(axis=0)
+            self.bias.grad = self.bias.grad + grad_s.tensor
+        else:
+            raise ValueError(f"The shape of the grad_s is {grad_s.shape} and the shape of the input is {self.input.shape}. Not broadcastable!")
+
         return grad_x
 
     def param(self):

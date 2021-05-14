@@ -51,14 +51,14 @@ def generate_disc_set(nb, one_hot_encode=True):
 
 if __name__ == '__main__':
     manual_seed(42)
-    batch_size = 10
-    epochs = 100
+    batch_size = 1000
+    epochs = 200
     learning_rate = 5e-1
     
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
     test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
-
     # model = Net()
+
     model = dl.Sequential(dl.Linear(2, 25),
                            dl.ReLU(),
                            dl.Linear(25, 25),
@@ -67,11 +67,12 @@ if __name__ == '__main__':
                            dl.ReLU(),
                            dl.Linear(25, 25),
                            dl.ReLU(),
-                           dl.Linear(25, 2),
-                           dl.Sigmoid())
-    
+                           dl.Linear(25, 2)
+                        #    dl.Sigmoid()
+                        )
+
     criterion = dl.LossMSE()
-    
+  
     val_losses = []
     val_accuracies = []
     for e in range(epochs):
@@ -111,8 +112,8 @@ if __name__ == '__main__':
 
         if e % 10 == 0:
             print(f"Epoch {e}: ")
-            print(f"\tTrain loss: {sum(train_losses) / n_batches:.2e}\t Train acc: {sum(train_accuracies) / n_batches:.2f}")
-            print(f"\tVal loss: {val_loss.tensor.item():.2e}\t Val acc: {val_accuracy.item():.2f}")
+            print(f"\tTrain loss: {sum(train_losses) / n_batches:.20e}\t Train acc: {sum(train_accuracies) / n_batches:.20f}")
+            print(f"\tVal loss: {val_loss.tensor.item():.20e}\t Val acc: {val_accuracy.item():.20f}")
 
     print(f"==> End of training, generating a new test set", flush=True)
 
@@ -130,11 +131,15 @@ if __name__ == '__main__':
     outfile.close()
 
 
-
     mseloss = dl.LossMSE()
 
     in_  = train_input[2:4]
     tar_ = train_target[2:4]
+    if len(in_.shape) == 1:
+        length = 1
+    else:
+        length = len(in_)
+
     lr = 0.1
     in_n = dl.nTensor(tensor=in_)
 
@@ -144,8 +149,8 @@ if __name__ == '__main__':
         model.zero_grad()
         loss.backward()
         print(k, " Before: ", in_n.tensor)
-        in_n.tensor = in_n.tensor + lr * in_n.grad/1000
+        in_n.tensor = in_n.tensor + lr * in_n.grad / length
         print("After: ",in_n.tensor)
-        print("Grad: ", in_n.grad/1000)
+        print("Grad: ", in_n.grad / length)
         print("\n")
 

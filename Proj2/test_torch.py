@@ -18,8 +18,8 @@ def generate_disc_set(nb, one_hot_encode=True):
 if __name__ == '__main__':
 
     torch.manual_seed(42)
-    batch_size = 10
-    epochs = 100
+    batch_size = 1000
+    epochs = 200
     learning_rate = 5e-1
 
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     ##plt.show()
     print(f"Number in: {train_labels.sum()}, Number out: {1000 - train_labels.sum()}")
     #exit()
-
+      
     model = torch.nn.Sequential(torch.nn.Linear(2, 25),
                           torch.nn.ReLU(),
                           torch.nn.Linear(25, 25),
@@ -40,7 +40,8 @@ if __name__ == '__main__':
                           torch.nn.Linear(25, 25),
                           torch.nn.ReLU(),
                           torch.nn.Linear(25, 2),
-                          torch.nn.Sigmoid())
+                        #   torch.nn.Sigmoid()
+                          )
     
     criterion = torch.nn.MSELoss()
 
@@ -82,8 +83,8 @@ if __name__ == '__main__':
 
         if e % 10 == 0:
             print(f"Epoch {e}: ")
-            print(f"\tTrain loss: {sum(train_losses) / n_batches:.2e}\t Train acc: {sum(train_accuracies) / n_batches:.2f}")
-            print(f"\tVal loss: {val_loss.item():.2e}\t Val acc: {val_accuracy.item():.2f}")
+            print(f"\tTrain loss: {sum(train_losses) / n_batches:.20e}\t Train acc: {sum(train_accuracies) / n_batches:.20f}")
+            print(f"\tVal loss: {val_loss.item():.20e}\t Val acc: {val_accuracy.item():.20f}")
 
     print(f"==> End of training, generating a new test set", flush=True)
 
@@ -98,11 +99,12 @@ if __name__ == '__main__':
         out = model(in_n)
         loss = - mseloss(out, tar_)
         optimizer.zero_grad()
+        # out.backward(torch.ones_like(out))
         loss.backward()
         print(k, " Before: ", in_n)
         optimizer.step()
         # with torch.no_grad():
-        #     in_n = in_n + lr * in_n.grad
+        #     in_n = in_n - lr * in_n.grad
         print("After: ",in_n)
         print("Grad: ", in_n.grad)
 

@@ -38,6 +38,12 @@ class Net(dl.Module):
         return params
 
 def generate_disc_set(nb, one_hot_encode=True):
+    ''' 
+        Generate the data set:
+        All points inside a radius of sqrt( 1 / (2 * PI) ) have
+        the label equal to 1 and all outside points have the
+        label equal to 0. 
+    '''
     data = empty(size=(nb, 2)).uniform_(0, 1)
     radius = (data - 0.5).pow(2).sum(axis=1)
     labels = (radius < 1./(2 * math.pi)).long()
@@ -51,14 +57,16 @@ def generate_disc_set(nb, one_hot_encode=True):
 
 if __name__ == '__main__':
     manual_seed(42)
-    batch_size = 1000
-    epochs = 200
+    batch_size = 10
+    epochs = 41
     learning_rate = 5e-1
     
+    ### Generate the data set: train and validation sets
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
-    test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
+    validation_input, validation_target, validation_labels = generate_disc_set(1000, one_hot_encode=True)
+    
+    ### Define the model
     # model = Net()
-
     model = dl.Sequential(dl.Linear(2, 25),
                            dl.ReLU(),
                            dl.Linear(25, 25),
@@ -67,12 +75,14 @@ if __name__ == '__main__':
                            dl.ReLU(),
                            dl.Linear(25, 25),
                            dl.ReLU(),
-                           dl.Linear(25, 2)
-                        #    dl.Sigmoid()
+                           dl.Linear(25, 2),
+                           dl.Sigmoid()
                         )
 
+    ### Define the loss
     criterion = dl.LossMSE()
   
+    ### Start training for n number of epochs
     val_losses = []
     val_accuracies = []
     for e in range(epochs):
@@ -80,34 +90,37 @@ if __name__ == '__main__':
         train_losses = []
         train_accuracies = []
         
+        ### Split the data set in mini batches
         n_batches = train_input.shape[0] // batch_size
         for batch in range(0, train_input.shape[0], batch_size):
+
+            ### Call the forward pass
             out = model(dl.nTensor(tensor=train_input.narrow(0, batch, batch_size)))
             
+            ### Compute the loss
             train_loss = criterion(out, dl.nTensor(tensor=train_target.narrow(0, batch, batch_size)))
             train_losses.append(train_loss.tensor.item())
             
+            ### Compute the accuracy
             train_accuracy = (out.tensor.argmax(axis=1) == train_target.narrow(0, batch, batch_size).argmax(axis=1)).float().mean()
             train_accuracies.append(train_accuracy.item())
             
-            
+            ### Set all gradients of the parameters to zero.
             model.zero_grad()
             
+            ### Call the backward pass (two possible methods)
             train_loss.backward()
-            #model.backward(criterion.backward())
+            # model.backward(criterion.backward())
+
+            ### Update the parameters
             for param in model.param():
                 param.tensor-= learning_rate * param.grad
-                
-                
-            
-            #print(train_loss, train_accuracy)
 
-        # Validation
-
-        out = model(dl.nTensor(tensor=test_input))
-        val_loss = criterion(out, dl.nTensor(tensor=test_target))
+        ### Validation step after the end of training in one epoch
+        out = model(dl.nTensor(tensor=validation_input))
+        val_loss = criterion(out, dl.nTensor(tensor=validation_target))
         val_losses.append(val_loss.tensor.item())
-        val_accuracy = (out.tensor.argmax(axis=1) == test_target.argmax(axis=1)).float().mean()
+        val_accuracy = (out.tensor.argmax(axis=1) == validation_target.argmax(axis=1)).float().mean()
         val_accuracies.append(val_accuracy.item())
 
         if e % 10 == 0:
@@ -115,26 +128,34 @@ if __name__ == '__main__':
             print(f"\tTrain loss: {sum(train_losses) / n_batches:.20e}\t Train acc: {sum(train_accuracies) / n_batches:.20f}")
             print(f"\tVal loss: {val_loss.tensor.item():.20e}\t Val acc: {val_accuracy.item():.20f}")
 
-    print(f"==> End of training, generating a new test set", flush=True)
+    print(f"\n==> End of training, generating a new test set\n", flush=True)
 
+    ### Generate a new test set and recompute the accuracy and the loss
     test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
     out = model(dl.nTensor(tensor=test_input))
     test_loss = criterion(out, dl.nTensor(tensor=test_target))
     out_labels = out.tensor.argmax(axis=1)
     test_accuracy = (out_labels == test_target.argmax(axis=1)).float().mean()
-    test_err = 1-test_accuracy
+    test_err = 1 - test_accuracy
 
     print(f"Final test loss: {test_loss.tensor.item():.3f}\tFinal test acc: {test_accuracy:.2f}\tFinal test error {test_err:.2f}")
+    
+    ### Write the positions of points the true labels and the predicted labels
     outfile = open("results/test_output.dat", 'w')
     for i in range(len(test_input)):
         outfile.write(f"{test_input[i,0]} {test_input[i,1]} {out_labels[i]} {test_labels[i]}\n")
     outfile.close()
 
+    ##########################
+    ##########################
 
-    mseloss = dl.LossMSE()
 
-    in_  = train_input[2:4]
-    tar_ = train_target[2:4]
+    ### Attempt to generate an adversarial example
+    msecriterion = dl.LossMSE()
+    index = 0
+    in_  = train_input[index]
+    tar_ = train_target[index]
+    
     if len(in_.shape) == 1:
         length = 1
     else:
@@ -142,15 +163,28 @@ if __name__ == '__main__':
 
     lr = 0.1
     in_n = dl.nTensor(tensor=in_)
-
-    for k in range(15):
+    tar_n = dl.nTensor(tensor=tar_)
+    for k in range(20):
         out = model(in_n)
-        loss = mseloss(out, dl.nTensor(tensor=tar_))
+        loss = msecriterion(out, tar_n)
+
+        print(f"\nStep={k}: loss={loss.tensor}")
         model.zero_grad()
         loss.backward()
-        print(k, " Before: ", in_n.tensor)
-        in_n.tensor = in_n.tensor + lr * in_n.grad / length
-        print("After: ",in_n.tensor)
-        print("Grad: ", in_n.grad / length)
-        print("\n")
+        print(" Input before update: ", in_n.tensor)
 
+        ### INFO: The gradient with respect the input is 
+        ### "length" times larger than the corresponding gradient in PyTorch.
+        ### This is the reason why we divide it by "length" 
+        in_n.tensor = in_n.tensor + lr * in_n.grad / length
+        print("Input after update: ", in_n.tensor)
+        print("Gradient with respect the input: ", in_n.grad / length)
+
+    tensor_A1 = in_n.tensor
+    tensor_A2 = empty(2)
+    tensor_A2[0], tensor_A2[1] = 0.4264, 0.8062
+
+    print(f"\nInitial position: {train_input[index]}; Label: {train_target[index]}; Radius: {(train_input[index] - 0.5).pow(2).sum()}/{1./(2*math.pi)}")
+
+    print(f"dl Adv ex: {tensor_A1}; OutLabel: {model(dl.nTensor(tensor=tensor_A1)).tensor}; Radius: {(tensor_A1 - 0.5).pow(2).sum()}/{1./(2*math.pi)}")
+    print(f"PyTorch Adv ex: {tensor_A2}; OutLabel: {model(dl.nTensor(tensor=tensor_A2)).tensor}; Radius: {(tensor_A2 - 0.5).pow(2).sum()}/{1./(2*math.pi)}")

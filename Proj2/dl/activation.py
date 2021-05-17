@@ -12,9 +12,11 @@ class _Activation(Module):
         - inherits from the Module class;
         - self.grad (nTensor) contains the gradient of the output 
         of the activation as function of the input;
-        - forward function stores the input the tensor,
-        the output tensor and returns the output tensor;
-        - backward function returns the 
+        - forward function stores the input the tensor (implemented in Module),
+        the output tensor (implemented in Module) and returns the output tensor;
+        it calls the "function" method specific to each Activation
+        - backward function returns the gradient with respect
+        the input and stores it (implemented in Module)
     """
     def __init__(self):
         super().__init__()
@@ -30,7 +32,15 @@ class _Activation(Module):
         raise NotImplementedError
 
 class ReLU(_Activation):
+    """ 
+        The ReLU activation function:
+        - 0, for x < 0
+        - slope * x, for x > 0
+        the slope can be given at the initialization;
 
+        - in method "function" the gradient is computed 
+        and stored; finally it returns the value of the function
+    """
     def __init__(self, slope=1):
         super().__init__()
         self.slope = slope
@@ -41,6 +51,12 @@ class ReLU(_Activation):
         return nTensor(tensor=self.slope * self.input.tensor.clamp(min=0), created_by=self)
     
 class Tanh(_Activation):
+    """
+        The hyperbolic tangent:
+
+        - in method "function" the gradient is computed 
+        and stored; finally it returns the value of the function
+    """
     def __init__(self):
         super().__init__()
 
@@ -49,6 +65,12 @@ class Tanh(_Activation):
         return nTensor(tensor=self.input.tensor.tanh(), created_by=self)
     
 class Sigmoid(_Activation):
+    """ 
+        The sigmoid activation:
+
+        - in method "function" the gradient is computed 
+        and stored; finally it returns the value of the function
+    """
     def __init__(self):
         super().__init__()
 

@@ -1,6 +1,20 @@
 from .module import Module
 
 class Sequential(Module):
+    """ The Sequential Class
+
+        - accepts a list of modules constituting the layers of the net
+        - the forward pass iterates through all stored layers and 
+        call applies successively all layers; stores the input and the output (implemented in Module)
+        - the param function returns a list with all parameters of 
+        the neural net
+        - the add function allows the addition of a layer after the 
+        model was defined by Sequential
+        - __getitem__ returns the module with index i
+        - summary prints the names of all layers
+        - the backward pass is implemented in Module. 
+
+    """
 
     def __init__(self, *input):
         super().__init__()

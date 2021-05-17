@@ -1,8 +1,13 @@
 import torch
 import math
-import matplotlib.pyplot as plt
 
 def generate_disc_set(nb, one_hot_encode=True):
+    ''' 
+        Generate the data set:
+        All points inside a radius of sqrt( 1 / (2 * PI) ) have
+        the label equal to 1 and all outside points have the
+        label equal to 0. 
+    '''
     data = torch.empty((nb, 2)).uniform_(0, 1)
     radius = (data - 0.5).pow(2).sum(axis=1)
     labels = (radius < 1./(2 * math.pi)).long()
@@ -18,19 +23,17 @@ def generate_disc_set(nb, one_hot_encode=True):
 if __name__ == '__main__':
 
     torch.manual_seed(42)
-    batch_size = 1000
-    epochs = 200
+    batch_size = 10
+    epochs = 41
     learning_rate = 5e-1
 
+    ### Generate the data set: train and validation sets
     train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
-    test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
+    validation_input, validation_target, validation_labels = generate_disc_set(1000, one_hot_encode=True)
     
-    #plt.scatter(train_input[train_labels.bool(),0], train_input[train_labels.bool(),1], c='r')
-    #plt.scatter(train_input[~train_labels.bool(),0], train_input[~train_labels.bool(),1], c='k')
-    ##plt.show()
     print(f"Number in: {train_labels.sum()}, Number out: {1000 - train_labels.sum()}")
-    #exit()
-      
+    
+    ### Define the model
     model = torch.nn.Sequential(torch.nn.Linear(2, 25),
                           torch.nn.ReLU(),
                           torch.nn.Linear(25, 25),
@@ -40,13 +43,13 @@ if __name__ == '__main__':
                           torch.nn.Linear(25, 25),
                           torch.nn.ReLU(),
                           torch.nn.Linear(25, 2),
-                        #   torch.nn.Sigmoid()
+                          torch.nn.Sigmoid()
                           )
     
+    ### Define the loss
     criterion = torch.nn.MSELoss()
 
-    #optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
-    
+    ### Start training for n number of epochs
     val_losses = []
     val_accuracies = []
     for e in range(epochs):
@@ -54,31 +57,37 @@ if __name__ == '__main__':
         train_losses = []
         train_accuracies = []
         
+        ### Split the data set in mini batches
         n_batches = train_input.shape[0] // batch_size
         for batch in range(0, train_input.shape[0], batch_size):
+            
+            ### Call the forward pass
             out = model(train_input.narrow(0, batch, batch_size))
             
+            ### Compute the loss
             train_loss = criterion(out, train_target.narrow(0, batch, batch_size))
             train_losses.append(train_loss.item())
             
+            ### Compute the accuracy
             train_accuracy = (out.argmax(axis=1) == train_target.narrow(0, batch, batch_size).argmax(axis=1)).float().mean()
             train_accuracies.append(train_accuracy.item())
             
+            ### Set all gradients of the parameters to zero.
             model.zero_grad()
+            
+            ### Call the backward pass
             train_loss.backward()
-            #optimizer.step()
-            #optimizer.zero_grad()
+
+            ### Update the parameters
             with torch.no_grad():
                 for param in model.parameters():
                     param -= learning_rate * param.grad
                     
-            
-            #print(train_loss, train_accuracy)
-        # print(torch.Tensor(train_accuracies).mean())
-        out = model(test_input)
-        val_loss = criterion(out, test_target)
+        ### Validation step after the end of training in one epoch
+        out = model(validation_input)
+        val_loss = criterion(out, validation_target)
         val_losses.append(val_loss.item())
-        val_accuracy = (out.argmax(axis=1) == test_target.argmax(axis=1)).float().mean()
+        val_accuracy = (out.argmax(axis=1) == validation_target.argmax(axis=1)).float().mean()
         val_accuracies.append(val_accuracy.item())
 
         if e % 10 == 0:
@@ -86,26 +95,51 @@ if __name__ == '__main__':
             print(f"\tTrain loss: {sum(train_losses) / n_batches:.20e}\t Train acc: {sum(train_accuracies) / n_batches:.20f}")
             print(f"\tVal loss: {val_loss.item():.20e}\t Val acc: {val_accuracy.item():.20f}")
 
-    print(f"==> End of training, generating a new test set", flush=True)
+    print(f"\n==> End of training, generating a new test set", flush=True)
 
-    mseloss = torch.nn.MSELoss()
+    ### Generate a new test set and recompute the accuracy and the loss
+    test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
+    out = model(test_input)
+    test_loss = criterion(out, test_target)
+    out_labels = out.argmax(axis=1)
+    test_accuracy = (out_labels == test_target.argmax(axis=1)).float().mean()
+    test_err = 1-test_accuracy
 
-    in_n  = train_input[2:4]
-    tar_ = train_target[2:4]
-    lr = 0.1
+    print(f"Final test loss: {test_loss.item():.3f}\tFinal test acc: {test_accuracy:.2f}\tFinal test error {test_err:.2f}")
+    
+    ##########################
+    ##########################
+
+
+    ### Attempt to generate an adversarial example
+    msecriterion = torch.nn.MSELoss()
+    index = 0
+    in_n = torch.empty(2)
+    in_n.copy_(train_input[index])
+    tar_n = train_target[index]
     in_n.requires_grad_()
-    optimizer = torch.optim.SGD([in_n], lr=1e-1)
-    for k in range(15):
-        out = model(in_n)
-        loss = - mseloss(out, tar_)
-        optimizer.zero_grad()
-        # out.backward(torch.ones_like(out))
-        loss.backward()
-        print(k, " Before: ", in_n)
-        optimizer.step()
-        # with torch.no_grad():
-        #     in_n = in_n - lr * in_n.grad
-        print("After: ",in_n)
-        print("Grad: ", in_n.grad)
 
-        print("\n")
+    lr = 0.1
+    optimizer = torch.optim.SGD([in_n], lr=lr)
+    for k in range(20):
+        out = model(in_n)
+        loss = - msecriterion(out, tar_n)
+
+        print(f"\nStep={k}: loss={loss}")
+        optimizer.zero_grad()
+        loss.backward()
+        print(" Input before update: ", in_n)
+
+        optimizer.step()
+        print("Input after update: ", in_n)
+        print("Gradient with respect the input: ", in_n.grad)
+
+
+    tensor_A1 = torch.empty(2)
+    tensor_A1[0], tensor_A1[1] = 0.4264, 0.8062
+    tensor_A2 = in_n
+
+    print(f"\nInitial position: {train_input[index]}; Label: {train_target[index]}; Radius: {(train_input[index] - 0.5).pow(2).sum()}/{1./(2*math.pi)}")
+
+    print(f"dl Adv ex: {tensor_A1}; OutLabel: {model(tensor_A1)}; Radius: {(tensor_A1 - 0.5).pow(2).sum()}/{1./(2*math.pi)}")
+    print(f"PyTorch Adv ex: {tensor_A2}; OutLabel: {model(tensor_A2)}; Radius: {(tensor_A2 - 0.5).pow(2).sum()}/{1./(2*math.pi)}")

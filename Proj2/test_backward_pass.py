@@ -85,3 +85,5 @@ if __name__ == '__main__':
         our_implem(train_input, train_target, train_labels)
     elif sys.argv[1] == '1':
         pytorch_implem(train_input, train_target, train_labels)
+    else:
+        print("USAGE: python test_backward_pass.py <<implementation>>, where <<implementation>> is 0 for our framework and 1 for pytorch")

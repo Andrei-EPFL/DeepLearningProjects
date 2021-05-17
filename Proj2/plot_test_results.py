@@ -15,4 +15,7 @@ ax[0].set_title("Prediction")
 ax[1].scatter(data.loc[data['truth'],'x'], data.loc[data['truth'],'y'], c = 'r')
 ax[1].scatter(data.loc[~data['truth'],'x'], data.loc[~data['truth'],'y'], c = 'b')
 ax[1].set_title("Truth")
+ax[0].scatter(0.3829, 0.9593, color="green")
+ax[0].scatter(0.4000, 0.6014, color="k")
+
 fig.savefig("results/test_output.png", dpi=150, bbox_inches='tight')

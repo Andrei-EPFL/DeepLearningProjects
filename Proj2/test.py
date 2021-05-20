@@ -1,8 +1,10 @@
-from torch import empty, manual_seed, set_grad_enabled
+from torch import empty, manual_seed, set_grad_enabled, set_default_dtype, set_printoptions
 import math
-
+import torch
 import dl
 
+set_printoptions(precision=30)
+set_default_dtype(torch.float32)
 set_grad_enabled(False)
 
 
@@ -58,7 +60,7 @@ def generate_disc_set(nb, one_hot_encode=True):
 if __name__ == '__main__':
     manual_seed(42)
     batch_size = 10
-    epochs = 41
+    epochs = 51
     learning_rate = 5e-1
     
     ### Generate the data set: train and validation sets
@@ -78,10 +80,13 @@ if __name__ == '__main__':
                            dl.Linear(25, 2),
                            dl.Sigmoid()
                         )
+    # for param in model.param():
+    #     print(param.tensor)
+    # exit()
 
     ### Define the loss
     criterion = dl.LossMSE()
-  
+
     ### Start training for n number of epochs
     val_losses = []
     val_accuracies = []
@@ -123,7 +128,7 @@ if __name__ == '__main__':
         val_accuracy = (out.tensor.argmax(axis=1) == validation_target.argmax(axis=1)).float().mean()
         val_accuracies.append(val_accuracy.item())
 
-        if e % 10 == 0:
+        if e % 1 == 0:
             print(f"Epoch {e}: ")
             print(f"\tTrain loss: {sum(train_losses) / n_batches:.20e}\t Train acc: {sum(train_accuracies) / n_batches:.20f}")
             print(f"\tVal loss: {val_loss.tensor.item():.20e}\t Val acc: {val_accuracy.item():.20f}")

@@ -1,6 +1,8 @@
 import torch
 import math
 
+torch.set_printoptions(precision=30)
+torch.set_default_dtype(torch.float32)
 def generate_disc_set(nb, one_hot_encode=True):
     ''' 
         Generate the data set:
@@ -12,7 +14,7 @@ def generate_disc_set(nb, one_hot_encode=True):
     radius = (data - 0.5).pow(2).sum(axis=1)
     labels = (radius < 1./(2 * math.pi)).long()
     if one_hot_encode:
-        out = torch.empty((data.shape[0], 2)).fill_(0).float()
+        out = torch.empty((data.shape[0], 2)).fill_(0)
         out[~labels.bool(),0] = 1
         out[labels.bool(),1] = 1
         return data, out, labels
@@ -24,7 +26,7 @@ if __name__ == '__main__':
 
     torch.manual_seed(42)
     batch_size = 10
-    epochs = 41
+    epochs = 51
     learning_rate = 5e-1
 
     ### Generate the data set: train and validation sets
@@ -45,7 +47,10 @@ if __name__ == '__main__':
                           torch.nn.Linear(25, 2),
                           torch.nn.Sigmoid()
                           )
-    
+    # for param in model.parameters():
+    #     print(param)
+    # exit()
+
     ### Define the loss
     criterion = torch.nn.MSELoss()
 
@@ -90,7 +95,7 @@ if __name__ == '__main__':
         val_accuracy = (out.argmax(axis=1) == validation_target.argmax(axis=1)).float().mean()
         val_accuracies.append(val_accuracy.item())
 
-        if e % 10 == 0:
+        if e % 1 == 0:
             print(f"Epoch {e}: ")
             print(f"\tTrain loss: {sum(train_losses) / n_batches:.20e}\t Train acc: {sum(train_accuracies) / n_batches:.20f}")
             print(f"\tVal loss: {val_loss.item():.20e}\t Val acc: {val_accuracy.item():.20f}")
@@ -107,6 +112,12 @@ if __name__ == '__main__':
 
     print(f"Final test loss: {test_loss.item():.3f}\tFinal test acc: {test_accuracy:.2f}\tFinal test error {test_err:.2f}")
     
+    ### Write the positions of points the true labels and the predicted labels
+    outfile = open("results/pytorch_test_output.dat", 'w')
+    for i in range(len(test_input)):
+        outfile.write(f"{test_input[i,0]} {test_input[i,1]} {out_labels[i]} {test_labels[i]}\n")
+    outfile.close()
+
     ##########################
     ##########################
 

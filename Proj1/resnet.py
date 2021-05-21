@@ -82,9 +82,9 @@ class ResNet_Baseline(torch.nn.Module):
         super().__init__()
 
         self.resnet = ResNet(nb_channels, kernel_size, nb_blocks, in_channels=in_channels,
-                            out_channels = 20)
+                            out_channels = 32)
 
-        self.dense = torch.nn.Sequential(torch.nn.Linear(in_features = 20, out_features = 32),
+        self.dense = torch.nn.Sequential(#torch.nn.Linear(in_features = 20, out_features = 32),
                                         torch.nn.ReLU(),
                                         torch.nn.Linear(in_features = 32, out_features = 64),
                                         torch.nn.ReLU(),

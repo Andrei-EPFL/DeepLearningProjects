@@ -18,14 +18,14 @@ if __name__ == '__main__':
         device='cpu'
 
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-seeds', default=[42], type=int, nargs='+')
-    parser.add_argument('-nepochs', default=50, type=int)
-    parser.add_argument('-model', type=str, default='convnet')
-    parser.add_argument('-test', default=False, action='store_true')
-    parser.add_argument('-no-weight-share', dest="no_weight_share", default=False, action='store_true')
-    parser.add_argument('-no-aux-loss', dest="no_aux_loss", default=False, action='store_true')
-    parser.add_argument('-baseline', dest="baseline", default=False, action='store_true')
+    parser = argparse.ArgumentParser(description="Script to train the models.")
+    parser.add_argument('-seeds', default=[42], type=int, nargs='+', help="List of seeds to train with. Default 42.")
+    parser.add_argument('-nepochs', default=50, type=int, help = "Number of epochs to train for. Default 50.")
+    parser.add_argument('-model', type=str, default='convnet', help="Model to train. Either convnet or resnet. Default 'convnet'.")
+    parser.add_argument('-test', default=False, action='store_true', help = 'Whether to test (not train) a model if it exists.')
+    parser.add_argument('-no-weight-share', dest="no_weight_share", default=False, action='store_true', help="Disable weight sharing.")
+    parser.add_argument('-no-aux-loss', dest="no_aux_loss", default=False, action='store_true', help="Disable using auxiliary loss.")
+    
 
     args = parser.parse_args()
     torch.manual_seed(999) # Set seed because generate_pair_sets involves randomness

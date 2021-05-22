@@ -2,6 +2,38 @@
 import torch
 
 class ConvNet(torch.nn.Module):
+    """
+    Module to implement simple LeNet type convnet.
+
+    Attributes:
+
+    in_channels: int
+        Number of channels in the input.
+    out_channels_1: int
+        Number of output channels of first convolutional layer.
+    out_channels_2: int
+        Number of output channels of second convolutional layer.
+    kernel_size_1: int
+        Kernel size of first convolutional layer.
+    kernel_size_2: int
+        Kernel size of second convolutional layer.
+    n_hidden: int
+        Number of hidden layers in the Linear layer.
+    n_classes: int
+        Number of output units (classes).
+    conv: Model
+        Convolutional part of the model.
+    dense: Model
+        Fully connected part of the model.
+
+    Methods:
+
+    forward:
+        Compute the output of the model.
+
+    """
+
+
     def __init__(self, in_channels, out_channels_1=32, 
                 out_channels_2=64, kernel_size_1=5,
                 kernel_size_2=3, n_hidden=100, n_classes=10):
@@ -31,12 +63,56 @@ class ConvNet(torch.nn.Module):
                                         torch.nn.Linear(in_features = self.n_hidden, out_features = self.n_classes))
 
     def forward(self, x):
+        """
+        Compute the output of the model
+
+        Parameters
+
+        x: Tensor shape (batch_size, n_channels, 14, 14)
+            Input to the model
+        
+        Returns
+
+        out: Tensor shape (batch_size, n_classes)
+            Predictions of the model
+
+        """
+
         out = self.conv(x)
         out = self.dense(out.view(out.shape[0], -1))
         return out
 
 
 class NN(torch.nn.Module):
+
+    """
+    Module to implement simple LeNet type convnet.
+
+    Attributes:
+    
+    out_channels_1: int
+        out_channels_1 to pass to ConvNet.
+    out_channels_2: int
+        out_channels_2 to pass to ConvNet.
+    kernel_size_1: int
+        kernel_size_1 to pass to ConvNet.
+    kernel_size_2: int
+        kernel_size_2 to pass to ConvNet.
+    n_hidden: int
+        n_hidden to pass to ConvNet.
+    conv1: Model
+        A ConvNet to classify the first digit.
+    conv2: Model
+        A ConvNet to classify the second digit.
+    dense: Model
+        MLP to predict sorting from digit predictions.
+
+    Methods:
+
+    forward:
+        Compute the outputs of the model (digit classes and sorting).
+
+    """
 
     def __init__(self, out_channels_1=32, out_channels_2=64, kernel_size_1=5, kernel_size_2=3, n_hidden=200):
         super().__init__()
@@ -74,6 +150,28 @@ class NN(torch.nn.Module):
 
 
     def forward(self, input):
+        """
+        Compute the output of the model
+
+        Parameters
+
+        input: Tensor shape (batch_size, n_channels, 14, 14)
+            Input to the model
+        
+        Returns
+
+        out_1: Tensor shape (batch_size, 10)
+            First digit classification predictions. Class prediction 
+            can be computed as out_1.argmax(axis=1).
+        out_2: Tensor shape (batch_size, 10)
+            Second digit classification predictions. Class prediction 
+            can be computed as out_2.argmax(axis=1).
+        out: Tensor shape (batch_size, 2)
+            Sorting predictions. Class prediction can be computed as
+            out.argmax(axis=1).
+
+        """
+
         in_1 = input[:, 0, :, :].unsqueeze(1)
         in_2 = input[:, 1, :, :].unsqueeze(1)
         out_1 = self.conv1(in_1)
@@ -82,6 +180,33 @@ class NN(torch.nn.Module):
         return out_1, out_2, out
 
 class NN_ws(torch.nn.Module):
+
+    """
+    Module to implement simple LeNet type convnet.
+
+    Attributes:
+    
+    out_channels_1: int
+        out_channels_1 to pass to ConvNet.
+    out_channels_2: int
+        out_channels_2 to pass to ConvNet.
+    kernel_size_1: int
+        kernel_size_1 to pass to ConvNet.
+    kernel_size_2: int
+        kernel_size_2 to pass to ConvNet.
+    n_hidden: int
+        n_hidden to pass to ConvNet.
+    conv: Model
+        A ConvNet to classify the digits.
+    dense: Model
+        MLP to predict sorting from digit predictions.
+
+    Methods:
+
+    forward:
+        Compute the outputs of the model (digit classes and sorting).
+
+    """
 
     def __init__(self, out_channels_1=32, out_channels_2=64, kernel_size_1=5, kernel_size_2=3, n_hidden=200):
         super().__init__()
@@ -113,6 +238,28 @@ class NN_ws(torch.nn.Module):
 
 
     def forward(self, input):
+        """
+        Compute the output of the model
+
+        Parameters
+
+        input: Tensor shape (batch_size, n_channels, 14, 14)
+            Input to the model
+        
+        Returns
+
+        out_1: Tensor shape (batch_size, 10)
+            First digit classification predictions. Class prediction 
+            can be computed as out_1.argmax(axis=1).
+        out_2: Tensor shape (batch_size, 10)
+            Second digit classification predictions. Class prediction 
+            can be computed as out_2.argmax(axis=1).
+        out: Tensor shape (batch_size, 2)
+            Sorting predictions. Class prediction can be computed as
+            out.argmax(axis=1).
+
+        """
+
         in_1 = input[:, 0, :, :].unsqueeze(1)
         in_2 = input[:, 1, :, :].unsqueeze(1)
         out_1 = self.conv(in_1)
@@ -122,6 +269,33 @@ class NN_ws(torch.nn.Module):
 
 
 class Baseline(torch.nn.Module):
+
+    """
+    Module to implement simple LeNet type convnet.
+
+    Attributes:
+    
+    out_channels_1: int
+        out_channels_1 to pass to ConvNet.
+    out_channels_2: int
+        out_channels_2 to pass to ConvNet.
+    kernel_size_1: int
+        kernel_size_1 to pass to ConvNet.
+    kernel_size_2: int
+        kernel_size_2 to pass to ConvNet.
+    n_hidden: int
+        n_hidden to pass to ConvNet.
+    conv: Model
+        A ConvNet to pass the input data through.
+    dense: Model
+        MLP to predict sorting from conv's output.
+
+    Methods:
+
+    forward:
+        Compute the outputs of the model (sorting).
+
+    """
 
     def __init__(self, out_channels_1=32, out_channels_2=64, kernel_size_1=5, kernel_size_2=3, n_hidden=200):
         super().__init__()
@@ -135,7 +309,7 @@ class Baseline(torch.nn.Module):
         # Define layers for network
         
         # A ConvNet to identify the digits
-        self.conv = ConvNet(in_channels=2, n_classes=20, 
+        self.conv = ConvNet(in_channels=2, n_classes=32, 
                             out_channels_1=self.out_channels_1,
                             out_channels_2=self.out_channels_2,
                             kernel_size_1=self.kernel_size_1,
@@ -143,7 +317,7 @@ class Baseline(torch.nn.Module):
                             n_hidden=self.n_hidden)
 
         # A dense network to know which is larger
-        self.dense = torch.nn.Sequential(torch.nn.Linear(in_features = 20, out_features = 32),
+        self.dense = torch.nn.Sequential(#torch.nn.Linear(in_features = 20, out_features = 32),
                                         torch.nn.ReLU(),
                                         torch.nn.Linear(in_features = 32, out_features = 64),
                                         torch.nn.ReLU(),
@@ -153,7 +327,21 @@ class Baseline(torch.nn.Module):
 
 
     def forward(self, input):
+        """
+        Compute the output of the model
+
+        Parameters
+
+        input: Tensor shape (batch_size, n_channels, 14, 14)
+            Input to the model
         
+        Returns
+
+        out: Tensor shape (batch_size, 2)
+            Sorting predictions. Class prediction can be computed as
+            out.argmax(axis=1).
+
+        """
         
         out = self.conv(input)
         out = self.dense(out)

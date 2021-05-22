@@ -156,8 +156,15 @@ def train(model,
         return all_train_losses, all_validation_losses, all_train_acc, all_validation_acc
 
 
-def train_bline(model, train_input, train_target, train_classes,
-            n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3):
+def train_bline(model, 
+                train_input, 
+                train_target, 
+                train_classes,
+                n_epochs, 
+                batch_size, 
+                device, 
+                validation_fraction=0.5, 
+                learning_rate=1e-3):
         
         """
         Function to train a model that supports using an auxiliary loss. 
@@ -189,8 +196,7 @@ def train_bline(model, train_input, train_target, train_classes,
             int(N*validation_fraction).
         learning_rate: float
             Learning rate to train the model with.
-        use_aux_loss: bool
-            Whether to train the model 'model' using an auxiliary loss.
+        
 
         Returns:
         

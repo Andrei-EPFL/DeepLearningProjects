@@ -19,9 +19,9 @@ if __name__ == '__main__':
 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-seeds', default=42, type=int, nargs='+')
+    parser.add_argument('-seeds', default=[42], type=int, nargs='+')
     parser.add_argument('-nepochs', default=50, type=int)
-    parser.add_argument('-model', type=str)
+    parser.add_argument('-model', type=str, default='convnet')
     parser.add_argument('-test', default=False, action='store_true')
     parser.add_argument('-no-weight-share', dest="no_weight_share", default=False, action='store_true')
     parser.add_argument('-no-aux-loss', dest="no_aux_loss", default=False, action='store_true')

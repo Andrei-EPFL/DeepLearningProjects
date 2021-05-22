@@ -1,8 +1,66 @@
 #!/usr/bin/env python
 import torch
 
-def train(model, train_input, train_target, train_classes,
-            n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3, use_aux_loss = True):
+def train(model, 
+          train_input, 
+          train_target, 
+          train_classes,
+          n_epochs, 
+          batch_size, 
+          device, 
+          validation_fraction=0.5, 
+          learning_rate=1e-3, 
+          use_aux_loss = True):
+        
+        """
+        Function to train a model that supports using an auxiliary loss. 
+        Uses CrossEntropyLoss (for sorting and classification) and SGD optimizer
+        for training. Divides the train_input into train and validation sets.
+
+        Parameters
+
+        model: Module
+            Pytorch model to train. Should output 3 Tensors of shapes
+            (batch_size, 10), (batch_size, 10) and (batch_size, 2) 
+            corresponding to the digit class predictions for each digit
+            and the sorting prediction, respectively.
+        train_input: Float Tensor shape (N, 2, 14, 14)
+            Contains the train input data, pairs of MNIST downsampled 
+            images.
+        train_target: Long Tensor shape (N,)
+            Contains the train input target. 1 if digit in position 0
+            is less than or equal than the digit in position 2. 0 otherwise.
+        train_classes: Long Tensor shape (N,2)
+            Contains the classes of the digit pairs.
+        n_epochs: int
+            Number of epochs to train the model for.
+        batch_size: int
+            Number of samples per batch of training data.
+        device: str
+            String for device to use. Either 'cpu' or 'cuda'.
+        validation_fraction: float
+            Fraction of the N input samples to use for validation during
+            training. Number of validation samples is computed as 
+            int(N*validation_fraction).
+        learning_rate: float
+            Learning rate to train the model with.
+        use_aux_loss: bool
+            Whether to train the model 'model' using an auxiliary loss.
+
+        Returns:
+        
+        all_train_losses: list len n_epochs
+            List of train loss per batch.
+        all_validation_losses: list len n_epochs
+            List of validation loss per batch.
+        all_train_acc: list len n_epochs
+            List of train sorting accuracy per batch.
+        all_validation_acc: list len n_epochs
+            List of validation sorting accuracy per batch.
+        
+
+        """
+
         
         pytorch_total_params = sum(p.numel() for p in model.parameters())
         pytorch_total_params_rg = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -10,7 +68,7 @@ def train(model, train_input, train_target, train_classes,
         print(f"Training model of class: {model.__class__.__name__}")
         print(f"The model has: {pytorch_total_params} params and {pytorch_total_params_rg} params that require grad.")
     
-        #torch.manual_seed(seed)
+        
         criterion = torch.nn.CrossEntropyLoss().to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', verbose=True, )
@@ -94,15 +152,62 @@ def train(model, train_input, train_target, train_classes,
 
                     print(f"Epoch {epoch:d}. Train loss = {train_loss}. Val. loss = {val_loss}")
                     print(f"\t  Train acc = {train_accuracy}. Val. acc = {val_accuracy}")
-
+        
         return all_train_losses, all_validation_losses, all_train_acc, all_validation_acc
 
 
 def train_bline(model, train_input, train_target, train_classes,
             n_epochs, batch_size, device, validation_fraction=0.5, learning_rate=1e-3):
         
+        """
+        Function to train a model that supports using an auxiliary loss. 
+        Uses CrossEntropyLoss (for sorting and classification) and SGD optimizer
+        for training. Divides the train_input into train and validation sets.
+
+        Parameters
+
+        model: Module
+            Pytorch model to train. Should output 1 Tensor of shape
+            (batch_size, 2) corresponding to the sorting prediction.
+        train_input: Float Tensor shape (N, 2, 14, 14)
+            Contains the train input data, pairs of MNIST downsampled 
+            images.
+        train_target: Long Tensor shape (N,)
+            Contains the train input target. 1 if digit in position 0
+            is less than or equal than the digit in position 2. 0 otherwise.
+        train_classes: Long Tensor shape (N,2)
+            Contains the classes of the digit pairs.
+        n_epochs: int
+            Number of epochs to train the model for.
+        batch_size: int
+            Number of samples per batch of training data.
+        device: str
+            String for device to use. Either 'cpu' or 'cuda'.
+        validation_fraction: float
+            Fraction of the N input samples to use for validation during
+            training. Number of validation samples is computed as 
+            int(N*validation_fraction).
+        learning_rate: float
+            Learning rate to train the model with.
+        use_aux_loss: bool
+            Whether to train the model 'model' using an auxiliary loss.
+
+        Returns:
         
-        #torch.manual_seed(seed)
+        all_train_losses: list len n_epochs
+            List of train loss per batch.
+        all_validation_losses: list len n_epochs
+            List of validation loss per batch.
+        all_train_acc: list len n_epochs
+            List of train sorting accuracy per batch.
+        all_validation_acc: list len n_epochs
+            List of validation sorting accuracy per batch.
+        
+
+        """
+
+
+        
         criterion = torch.nn.CrossEntropyLoss().to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', verbose=True, )
@@ -134,7 +239,9 @@ def train_bline(model, train_input, train_target, train_classes,
 
             train_losses = []
             train_accuracies = []
+
             for batch in range(0, train_input.shape[0], batch_size):
+                model.train()
                 out = model(train_input.narrow(0, batch, batch_size))
 
                 out_class = torch.argmax(out, axis=1).to(int)
@@ -151,6 +258,7 @@ def train_bline(model, train_input, train_target, train_classes,
             
             
             with torch.no_grad():
+                model.eval()
                 out = model(validation_input)
                 val_loss = criterion(out, validation_target)
                 train_loss = sum(train_losses) / len(train_losses)
@@ -177,41 +285,4 @@ def train_bline(model, train_input, train_target, train_classes,
 
 
 
-        
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    from dlc_practical_prologue import generate_pair_sets
-
-
-    if torch.cuda.is_available():
-        device='cuda'
-    else:
-        device='cpu'
-
-    
-    train_input, train_target, train_classes, test_input, test_target, test_classes = generate_pair_sets(5000)
-    
-    model = NN_ws().to(device)
-    n_epochs=100
-    batch_size=5
-    seed=42
-
-
-    
-    train_loss, val_loss, train_acc, val_acc = train(model, train_input, train_target, train_classes,
-            n_epochs, batch_size, device, validation_fraction=0.3, learning_rate=1e-3)
-
-    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-
-    ax[0].plot(train_loss, label='train')
-    ax[0].plot(val_loss, label='val')
-    ax[0].set_ylabel('Loss')
-
-    ax[1].plot(train_acc, label='train')
-    ax[1].plot(val_acc, label='val')
-    ax[1].set_ylabel('Accuracy')
-
-    ax[0].legend(loc=0)
-    [a.set_xlabel('Epochs') for a in ax]
-    fig.savefig(f"results/plots/learning_curve.png", dpi=200)
+     

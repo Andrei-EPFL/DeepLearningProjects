@@ -21,9 +21,9 @@ class ConvNet(torch.nn.Module):
         Number of hidden layers in the Linear layer.
     n_classes: int
         Number of output units (classes).
-    conv: Model
+    conv: Module
         Convolutional part of the model.
-    dense: Model
+    dense: Module
         Fully connected part of the model.
 
     Methods:
@@ -100,11 +100,11 @@ class NN(torch.nn.Module):
         kernel_size_2 to pass to ConvNet.
     n_hidden: int
         n_hidden to pass to ConvNet.
-    conv1: Model
+    conv1: Module
         A ConvNet to classify the first digit.
-    conv2: Model
+    conv2: Module
         A ConvNet to classify the second digit.
-    dense: Model
+    dense: Module
         MLP to predict sorting from digit predictions.
 
     Methods:
@@ -196,9 +196,9 @@ class NN_ws(torch.nn.Module):
         kernel_size_2 to pass to ConvNet.
     n_hidden: int
         n_hidden to pass to ConvNet.
-    conv: Model
+    conv: Module
         A ConvNet to classify the digits.
-    dense: Model
+    dense: Module
         MLP to predict sorting from digit predictions.
 
     Methods:
@@ -271,7 +271,8 @@ class NN_ws(torch.nn.Module):
 class Baseline(torch.nn.Module):
 
     """
-    Module to implement simple LeNet type convnet.
+    Module to implement simple LeNet type convnet for digit 
+    pair sorting without separating digits.
 
     Attributes:
     
@@ -285,9 +286,9 @@ class Baseline(torch.nn.Module):
         kernel_size_2 to pass to ConvNet.
     n_hidden: int
         n_hidden to pass to ConvNet.
-    conv: Model
+    conv: Module
         A ConvNet to pass the input data through.
-    dense: Model
+    dense: Module
         MLP to predict sorting from conv's output.
 
     Methods:

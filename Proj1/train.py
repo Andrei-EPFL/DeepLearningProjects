@@ -150,8 +150,8 @@ def train(model,
 
                 if epoch % 5 == 0:
 
-                    print(f"Epoch {epoch:d}. Train loss = {train_loss}. Val. loss = {val_loss}")
-                    print(f"\t  Train acc = {train_accuracy}. Val. acc = {val_accuracy}")
+                    print(f"Epoch {epoch:d}. Train loss = {train_loss:.3e}. Val. loss = {val_loss:.3e}")
+                    print(f"\t  Train acc = {train_accuracy:.3f}. Val. acc = {val_accuracy:.3f}")
         
         return all_train_losses, all_validation_losses, all_train_acc, all_validation_acc
 
@@ -238,7 +238,11 @@ def train_bline(model,
         all_train_acc = []
         all_validation_acc = []
 
+        pytorch_total_params = sum(p.numel() for p in model.parameters())
+        pytorch_total_params_rg = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
         print(f"Training model of class: {model.__class__.__name__} as baseline")
+        print(f"The model has: {pytorch_total_params} params and {pytorch_total_params_rg} params that require grad.")
         
 
         for epoch in range(n_epochs):
@@ -284,7 +288,7 @@ def train_bline(model,
                 if epoch % 5 == 0:
 
                     print(f"Epoch {epoch:d}. Train loss = {train_loss:.3e}. Val. loss = {val_loss:.3e}")
-                    print(f"\t  Train acc = {train_accuracy:.3e}. Val. acc = {val_accuracy:.3e}")
+                    print(f"\t  Train acc = {train_accuracy:.3f}. Val. acc = {val_accuracy:.3f}")
 
         return all_train_losses, all_validation_losses, all_train_acc, all_validation_acc
 

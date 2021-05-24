@@ -5,7 +5,7 @@ import argparse
 
 from helpers import generate_pair_sets
 
-from convnet import NN_ws, NN, ConvNet
+from convnet import NN_ws, NN
 from resnet import ResNet_NN, ResNet_NN_ws
 from train import train
 

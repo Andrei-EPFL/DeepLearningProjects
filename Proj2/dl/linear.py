@@ -40,18 +40,23 @@ class Linear(Module):
         The param function:
             - returns the weights and bias nTensors.
     """
-    def __init__(self, input_features, output_features):
+    def __init__(self, input_features, output_features, biasbool=True):
 
         super().__init__()
 
         #Initialize weights
         self.sqrtk = math.sqrt(1 / input_features)
         self.weights = nTensor(tensor=empty(size=(output_features, input_features)).uniform_(-self.sqrtk, self.sqrtk))
-        self.bias = nTensor(tensor=empty(size=(output_features,)).uniform_(-self.sqrtk, self.sqrtk))
+        self.biasbool = biasbool
+        if self.biasbool:
+            self.bias = nTensor(tensor=empty(size=(output_features,)).uniform_(-self.sqrtk, self.sqrtk))
         self.zero_grad()
 
     def forward(self, input):
-        s = input.tensor.matmul(self.weights.tensor.t()).squeeze() + self.bias.tensor
+        s = input.tensor.matmul(self.weights.tensor.t()).squeeze()
+        if self.biasbool:
+            s += self.bias.tensor
+
         return nTensor(tensor=s, created_by=self)
 
     def backward(self, gradwrtoutput):
@@ -60,14 +65,20 @@ class Linear(Module):
 
         if len(grad_s.shape) == 2 and len(self.input.shape) == 2:
             self.weights.grad = self.weights.grad + (grad_s.tensor[:, :, None] * self.input.tensor[:, None, :]).mean(axis=0)
-            self.bias.grad = self.bias.grad + grad_s.tensor.mean(axis=0)
+            if self.biasbool:
+                self.bias.grad = self.bias.grad + grad_s.tensor.mean(axis=0)
         elif len(grad_s.shape) == 1 and len(self.input.shape) == 1:
             self.weights.grad = self.weights.grad + (grad_s.tensor[:, None] * self.input.tensor[None, :]).mean(axis=0)
-            self.bias.grad = self.bias.grad + grad_s.tensor
+            if self.biasbool:
+                self.bias.grad = self.bias.grad + grad_s.tensor
         else:
             raise ValueError(f"The shape of the grad_s is {grad_s.shape} and the shape of the input is {self.input.shape}. Not broadcastable!")
 
         return grad_x
 
     def param(self):
-        return [self.weights, self.bias]
+        if self.biasbool:
+            return [self.weights, self.bias]
+        
+        return [self.weights]
+        

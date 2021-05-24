@@ -1,8 +1,9 @@
 import torch
 import math
+import time
 
 torch.set_printoptions(precision=30)
-torch.set_default_dtype(torch.float32)
+torch.set_default_dtype(torch.float64)
 def generate_disc_set(nb, one_hot_encode=True):
     ''' 
         Generate the data set:
@@ -26,13 +27,21 @@ if __name__ == '__main__':
 
     torch.manual_seed(42)
     batch_size = 10
-    epochs = 51
+    epochs = 50
     learning_rate = 5e-1
 
     ### Generate the data set: train and validation sets
-    train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
-    validation_input, validation_target, validation_labels = generate_disc_set(1000, one_hot_encode=True)
+    # train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
+    # validation_input, validation_target, validation_labels = generate_disc_set(1000, one_hot_encode=True)
     
+    train_input = torch.load("./data/train_input_float32_S42.pt").double()
+    train_target = torch.load("./data/train_target_float32_S42.pt").double()
+    train_labels = torch.load("./data/train_labels_float32_S42.pt").double()
+    
+    validation_input = torch.load("./data/validation_input_float32_S42.pt").double()
+    validation_target = torch.load("./data/validation_target_float32_S42.pt").double()
+    validation_labels = torch.load("./data/validation_labels_float32_S42.pt").double()
+
     print(f"Number in: {train_labels.sum()}, Number out: {1000 - train_labels.sum()}")
     
     ### Define the model
@@ -42,14 +51,9 @@ if __name__ == '__main__':
                           torch.nn.ReLU(),
                           torch.nn.Linear(25, 25),
                           torch.nn.ReLU(),
-                          torch.nn.Linear(25, 25),
-                          torch.nn.ReLU(),
                           torch.nn.Linear(25, 2),
-                          torch.nn.Sigmoid()
-                          )
-    # for param in model.parameters():
-    #     print(param)
-    # exit()
+                          torch.nn.Tanh()
+                        )
 
     ### Define the loss
     criterion = torch.nn.MSELoss()
@@ -57,6 +61,7 @@ if __name__ == '__main__':
     ### Start training for n number of epochs
     val_losses = []
     val_accuracies = []
+    start_time = time.time()
     for e in range(epochs):
 
         train_losses = []
@@ -95,15 +100,20 @@ if __name__ == '__main__':
         val_accuracy = (out.argmax(axis=1) == validation_target.argmax(axis=1)).float().mean()
         val_accuracies.append(val_accuracy.item())
 
-        if e % 1 == 0:
+        if e % 1 == 0 or e == epochs - 1:
             print(f"Epoch {e}: ")
             print(f"\tTrain loss: {sum(train_losses) / n_batches:.20e}\t Train acc: {sum(train_accuracies) / n_batches:.20f}")
             print(f"\tVal loss: {val_loss.item():.20e}\t Val acc: {val_accuracy.item():.20f}")
 
-    print(f"\n==> End of training, generating a new test set", flush=True)
+    print(f"\n==> End of training after {time.time()-start_time} seconds. Generating a new test set\n", flush=True)
 
     ### Generate a new test set and recompute the accuracy and the loss
-    test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
+    # test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
+    
+    test_input=torch.load("./data/test_input_float32_S42.pt").double()
+    test_target=torch.load("./data/test_target_float32_S42.pt").double()
+    test_labels=torch.load("./data/test_labels_float32_S42.pt").double()
+    
     out = model(test_input)
     test_loss = criterion(out, test_target)
     out_labels = out.argmax(axis=1)
@@ -113,7 +123,7 @@ if __name__ == '__main__':
     print(f"Final test loss: {test_loss.item():.3f}\tFinal test acc: {test_accuracy:.2f}\tFinal test error {test_err:.2f}")
     
     ### Write the positions of points the true labels and the predicted labels
-    outfile = open("results/pytorch_test_output.dat", 'w')
+    outfile = open("results/float64_pt_test_output_S42.dat", 'w')
     for i in range(len(test_input)):
         outfile.write(f"{test_input[i,0]} {test_input[i,1]} {out_labels[i]} {test_labels[i]}\n")
     outfile.close()

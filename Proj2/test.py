@@ -1,10 +1,12 @@
 from torch import empty, manual_seed, set_grad_enabled, set_default_dtype, set_printoptions
 import math
+import time
+
 import torch
 import dl
 
 set_printoptions(precision=30)
-set_default_dtype(torch.float32)
+set_default_dtype(torch.float64)
 set_grad_enabled(False)
 
 
@@ -50,7 +52,7 @@ def generate_disc_set(nb, one_hot_encode=True):
     radius = (data - 0.5).pow(2).sum(axis=1)
     labels = (radius < 1./(2 * math.pi)).long()
     if one_hot_encode:
-        out = empty(size=(data.shape[0], 2)).fill_(0).float()
+        out = empty(size=(data.shape[0], 2)).fill_(0)
         out[~labels.bool(),0] = 1
         out[labels.bool(),1] = 1
         return data, out, labels
@@ -60,13 +62,23 @@ def generate_disc_set(nb, one_hot_encode=True):
 if __name__ == '__main__':
     manual_seed(42)
     batch_size = 10
-    epochs = 51
+    epochs = 50
     learning_rate = 5e-1
     
     ### Generate the data set: train and validation sets
-    train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
-    validation_input, validation_target, validation_labels = generate_disc_set(1000, one_hot_encode=True)
+    # train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
+    # validation_input, validation_target, validation_labels = generate_disc_set(1000, one_hot_encode=True)
+
+    train_input = torch.load("./data/train_input_float32_S42.pt").double()
+    train_target = torch.load("./data/train_target_float32_S42.pt").double()
+    train_labels = torch.load("./data/train_labels_float32_S42.pt").double()
     
+    validation_input = torch.load("./data/validation_input_float32_S42.pt").double()
+    validation_target = torch.load("./data/validation_target_float32_S42.pt").double()
+    validation_labels = torch.load("./data/validation_labels_float32_S42.pt").double()
+
+    print(f"Number in: {train_labels.sum()}, Number out: {1000 - train_labels.sum()}")
+
     ### Define the model
     # model = Net()
     model = dl.Sequential(dl.Linear(2, 25),
@@ -75,14 +87,9 @@ if __name__ == '__main__':
                            dl.ReLU(),
                            dl.Linear(25, 25),
                            dl.ReLU(),
-                           dl.Linear(25, 25),
-                           dl.ReLU(),
                            dl.Linear(25, 2),
-                           dl.Sigmoid()
+                           dl.Tanh()
                         )
-    # for param in model.param():
-    #     print(param.tensor)
-    # exit()
 
     ### Define the loss
     criterion = dl.LossMSE()
@@ -90,6 +97,7 @@ if __name__ == '__main__':
     ### Start training for n number of epochs
     val_losses = []
     val_accuracies = []
+    start_time = time.time()
     for e in range(epochs):
 
         train_losses = []
@@ -128,15 +136,20 @@ if __name__ == '__main__':
         val_accuracy = (out.tensor.argmax(axis=1) == validation_target.argmax(axis=1)).float().mean()
         val_accuracies.append(val_accuracy.item())
 
-        if e % 1 == 0:
+        if e % 1 == 0 or e == epochs - 1:
             print(f"Epoch {e}: ")
             print(f"\tTrain loss: {sum(train_losses) / n_batches:.20e}\t Train acc: {sum(train_accuracies) / n_batches:.20f}")
             print(f"\tVal loss: {val_loss.tensor.item():.20e}\t Val acc: {val_accuracy.item():.20f}")
 
-    print(f"\n==> End of training, generating a new test set\n", flush=True)
+    print(f"\n==> End of training after {time.time()-start_time} seconds. Generating a new test set\n", flush=True)
 
     ### Generate a new test set and recompute the accuracy and the loss
-    test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
+    # test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
+    
+    test_input=torch.load("./data/test_input_float32_S42.pt").double()
+    test_target=torch.load("./data/test_target_float32_S42.pt").double()
+    test_labels=torch.load("./data/test_labels_float32_S42.pt").double()
+    
     out = model(dl.nTensor(tensor=test_input))
     test_loss = criterion(out, dl.nTensor(tensor=test_target))
     out_labels = out.tensor.argmax(axis=1)
@@ -146,7 +159,7 @@ if __name__ == '__main__':
     print(f"Final test loss: {test_loss.tensor.item():.3f}\tFinal test acc: {test_accuracy:.2f}\tFinal test error {test_err:.2f}")
     
     ### Write the positions of points the true labels and the predicted labels
-    outfile = open("results/test_output.dat", 'w')
+    outfile = open("results/float64_dl_test_output_S42.dat", 'w')
     for i in range(len(test_input)):
         outfile.write(f"{test_input[i,0]} {test_input[i,1]} {out_labels[i]} {test_labels[i]}\n")
     outfile.close()

@@ -15,7 +15,8 @@ def plot_(ax, data_pt, data_dl):
     range_nt_dl = np.logical_and(~data_pt['pred'], data_dl['pred'])
     range_nt_ndl = np.logical_and(~data_pt['pred'], ~data_dl['pred'])
 
-
+    print(len(data_pt.loc[range_t_ndl,'x']))
+    print(len(data_pt.loc[range_nt_dl,'x']))
     ax.scatter(data_pt.loc[range_t_ndl,'x'], data_pt.loc[range_t_ndl,'y'], c = 'orange', s=10, label="t 1 & d 0")
     ax.scatter(data_pt.loc[range_nt_dl,'x'], data_pt.loc[range_nt_dl,'y'], c = 'lime', s=10, label="t 0 & d 1")
     ax.scatter(data_pt.loc[range_nt_ndl,'x'], data_pt.loc[range_nt_ndl,'y'], c = 'dodgerblue', s=10, label="t 0 & d 0")

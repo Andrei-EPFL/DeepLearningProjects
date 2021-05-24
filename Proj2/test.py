@@ -1,12 +1,15 @@
-from torch import empty, manual_seed, set_grad_enabled, set_default_dtype, set_printoptions
+from torch import empty
+from torch import manual_seed, set_grad_enabled
+from torch import set_default_dtype, set_printoptions, float64
+from torch import load
+
 import math
 import time
 
-import torch
 import dl
 
 set_printoptions(precision=30)
-set_default_dtype(torch.float64)
+set_default_dtype(float64)
 set_grad_enabled(False)
 
 
@@ -19,17 +22,14 @@ class Net(dl.Module):
         self.relu2 = dl.ReLU()
         self.fc3 = dl.Linear(25, 25)
         self.relu3 = dl.ReLU()
-        self.fc4 = dl.Linear(25, 25)
-        self.relu4 = dl.ReLU()
-        self.fc5 = dl.Linear(25, 2)
-        self.sigmoid = dl.Sigmoid()
+        self.fc4 = dl.Linear(25, 2)
+        self.tanh = dl.Tanh()
                          
     def forward(self, x):
         x = self.relu1(self.fc1(x))
         x = self.relu2(self.fc2(x))
         x = self.relu3(self.fc3(x))
-        x = self.relu4(self.fc4(x))
-        x = self.sigmoid(self.fc5(x))
+        x = self.tanh(self.fc4(x))
         return x
 
     def param(self):
@@ -69,13 +69,13 @@ if __name__ == '__main__':
     # train_input, train_target, train_labels = generate_disc_set(1000, one_hot_encode=True)
     # validation_input, validation_target, validation_labels = generate_disc_set(1000, one_hot_encode=True)
 
-    train_input = torch.load("./data/train_input_float32_S42.pt").double()
-    train_target = torch.load("./data/train_target_float32_S42.pt").double()
-    train_labels = torch.load("./data/train_labels_float32_S42.pt").double()
+    train_input = load("./data/train_input_float32_S42.pt").double()
+    train_target = load("./data/train_target_float32_S42.pt").double()
+    train_labels = load("./data/train_labels_float32_S42.pt").double()
     
-    validation_input = torch.load("./data/validation_input_float32_S42.pt").double()
-    validation_target = torch.load("./data/validation_target_float32_S42.pt").double()
-    validation_labels = torch.load("./data/validation_labels_float32_S42.pt").double()
+    validation_input = load("./data/validation_input_float32_S42.pt").double()
+    validation_target = load("./data/validation_target_float32_S42.pt").double()
+    validation_labels = load("./data/validation_labels_float32_S42.pt").double()
 
     print(f"Number in: {train_labels.sum()}, Number out: {1000 - train_labels.sum()}")
 
@@ -146,9 +146,9 @@ if __name__ == '__main__':
     ### Generate a new test set and recompute the accuracy and the loss
     # test_input, test_target, test_labels = generate_disc_set(1000, one_hot_encode=True)
     
-    test_input=torch.load("./data/test_input_float32_S42.pt").double()
-    test_target=torch.load("./data/test_target_float32_S42.pt").double()
-    test_labels=torch.load("./data/test_labels_float32_S42.pt").double()
+    test_input=load("./data/test_input_float32_S42.pt").double()
+    test_target=load("./data/test_target_float32_S42.pt").double()
+    test_labels=load("./data/test_labels_float32_S42.pt").double()
     
     out = model(dl.nTensor(tensor=test_input))
     test_loss = criterion(out, dl.nTensor(tensor=test_target))

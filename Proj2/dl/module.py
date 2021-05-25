@@ -16,8 +16,8 @@ class Module(object):
     def forward(self, *args, **kwargs):
         raise NotImplementedError
 
-    def backward(self):
-        grad = self.output.grad
+    def backward(self, gradwrtoutput):
+        grad = gradwrtoutput
         module = self.output.created_by
 
         while module:

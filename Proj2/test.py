@@ -122,7 +122,7 @@ if __name__ == '__main__':
             
             ### Call the backward pass (two possible methods)
             train_loss.backward()
-            # model.backward()
+            # model.backward(criterion.backward())
 
             ### Update the parameters
             for param in model.param():

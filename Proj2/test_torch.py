@@ -72,7 +72,6 @@ if __name__ == '__main__':
             
             ### Call the forward pass
             out = model(train_input.narrow(0, batch, batch_size))
-            
             ### Compute the loss
             train_loss = criterion(out, train_target.narrow(0, batch, batch_size))
             train_losses.append(train_loss.item())

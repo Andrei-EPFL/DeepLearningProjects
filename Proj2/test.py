@@ -1,6 +1,6 @@
 from torch import empty
 from torch import manual_seed, set_grad_enabled
-from torch import set_default_dtype, set_printoptions, float64
+from torch import set_default_dtype, set_printoptions, float64, float32
 from torch import load
 
 import math
@@ -109,7 +109,6 @@ if __name__ == '__main__':
 
             ### Call the forward pass
             out = model(dl.nTensor(tensor=train_input.narrow(0, batch, batch_size)))
-            
             ### Compute the loss
             train_loss = criterion(out, dl.nTensor(tensor=train_target.narrow(0, batch, batch_size)))
             train_losses.append(train_loss.tensor.item())

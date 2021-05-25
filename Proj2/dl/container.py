@@ -13,13 +13,11 @@ class Sequential(Module):
         - __getitem__ returns the module with index i
         - summary prints the names of all layers
         - the backward pass is implemented in Module. 
-
     """
 
     def __init__(self, *input):
         super().__init__()
         self.module_list=list(input)
-        
         
     def forward(self, input):
         output = input

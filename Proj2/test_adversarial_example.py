@@ -163,3 +163,46 @@ if __name__ == '__main__':
     for i in range(len(test_input)):
         outfile.write(f"{test_input[i,0]} {test_input[i,1]} {out_labels[i]} {test_labels[i]}\n")
     outfile.close()
+
+    ##########################
+    ##########################
+
+
+    ### Attempt to generate an adversarial example
+    msecriterion = dl.LossMSE()
+    index = 1
+    in_  = train_input[index]
+    tar_ = train_target[index]
+    
+    if len(in_.shape) == 1:
+        length = 1
+    else:
+        length = len(in_)
+
+    lr = 0.1
+    in_n = dl.nTensor(tensor=in_)
+    tar_n = dl.nTensor(tensor=tar_)
+    for k in range(15):
+        out = model(in_n)
+        loss = msecriterion(out, tar_n)
+
+        print(f"\nStep={k}: loss={loss.tensor}")
+        model.zero_grad()
+        loss.backward()
+        print(" Input before update: ", in_n.tensor)
+
+        ### INFO: The gradient with respect the input is 
+        ### "length" times larger than the corresponding gradient in PyTorch.
+        ### This is the reason why we divide it by "length" 
+        in_n.tensor = in_n.tensor + lr * in_n.grad / length
+        print("Input after update: ", in_n.tensor)
+        print("Gradient with respect the input: ", in_n.grad / length)
+
+    tensor_A1 = in_n.tensor
+    tensor_A2 = empty(2)
+    tensor_A2[0], tensor_A2[1] = 0.35969, 0.59878
+
+    print(f"\nInitial position: {train_input[index]}; Label: {train_target[index]}; Radius: {(train_input[index] - 0.5).pow(2).sum()}/{1./(2*math.pi)}")
+
+    print(f"dl Adv ex: {tensor_A1}; OutLabel: {model(dl.nTensor(tensor=tensor_A1)).tensor}; Radius: {(tensor_A1 - 0.5).pow(2).sum()}/{1./(2*math.pi)}")
+    print(f"PyTorch Adv ex: {tensor_A2}; OutLabel: {model(dl.nTensor(tensor=tensor_A2)).tensor}; Radius: {(tensor_A2 - 0.5).pow(2).sum()}/{1./(2*math.pi)}")

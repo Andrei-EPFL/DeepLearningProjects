@@ -34,6 +34,7 @@ class LossMSE(Module):
 
     def forward(self, prediction, target):
         self.error = nTensor(tensor=(prediction.tensor - target.tensor))
+        self.input.grad = self.error
         return nTensor(tensor=self.error.tensor.pow(2).mean(), created_by=self)
 
     def backward(self, gradwrtoutput=None):

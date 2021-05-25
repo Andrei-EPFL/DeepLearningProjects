@@ -54,7 +54,6 @@ if __name__ == '__main__':
                           torch.nn.Linear(25, 2),
                           torch.nn.Tanh()
                         )
-
     ### Define the loss
     criterion = torch.nn.MSELoss()
 

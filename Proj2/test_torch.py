@@ -2,7 +2,7 @@ import torch
 import math
 import time
 
-torch.set_printoptions(precision=30)
+torch.set_printoptions(precision=5)
 torch.set_default_dtype(torch.float64)
 def generate_disc_set(nb, one_hot_encode=True):
     ''' 
@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
     ### Attempt to generate an adversarial example
     msecriterion = torch.nn.MSELoss()
-    index = 0
+    index = 1
     in_n = torch.empty(2)
     in_n.copy_(train_input[index])
     tar_n = train_target[index]
@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
     lr = 0.1
     optimizer = torch.optim.SGD([in_n], lr=lr)
-    for k in range(20):
+    for k in range(15):
         out = model(in_n)
         loss = - msecriterion(out, tar_n)
 
@@ -157,7 +157,7 @@ if __name__ == '__main__':
 
 
     tensor_A1 = torch.empty(2)
-    tensor_A1[0], tensor_A1[1] = 0.4264, 0.8062
+    tensor_A1[0], tensor_A1[1] = 0.37226, 0.97050
     tensor_A2 = in_n
 
     print(f"\nInitial position: {train_input[index]}; Label: {train_target[index]}; Radius: {(train_input[index] - 0.5).pow(2).sum()}/{1./(2*math.pi)}")

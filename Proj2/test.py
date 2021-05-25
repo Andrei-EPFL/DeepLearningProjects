@@ -8,7 +8,7 @@ import time
 
 import dl
 
-set_printoptions(precision=30)
+set_printoptions(precision=5)
 set_default_dtype(float64)
 set_grad_enabled(False)
 
@@ -170,7 +170,7 @@ if __name__ == '__main__':
 
     ### Attempt to generate an adversarial example
     msecriterion = dl.LossMSE()
-    index = 0
+    index = 1
     in_  = train_input[index]
     tar_ = train_target[index]
     
@@ -182,7 +182,7 @@ if __name__ == '__main__':
     lr = 0.1
     in_n = dl.nTensor(tensor=in_)
     tar_n = dl.nTensor(tensor=tar_)
-    for k in range(20):
+    for k in range(15):
         out = model(in_n)
         loss = msecriterion(out, tar_n)
 
@@ -200,7 +200,7 @@ if __name__ == '__main__':
 
     tensor_A1 = in_n.tensor
     tensor_A2 = empty(2)
-    tensor_A2[0], tensor_A2[1] = 0.4264, 0.8062
+    tensor_A2[0], tensor_A2[1] = 0.35969, 0.59878
 
     print(f"\nInitial position: {train_input[index]}; Label: {train_target[index]}; Radius: {(train_input[index] - 0.5).pow(2).sum()}/{1./(2*math.pi)}")
 

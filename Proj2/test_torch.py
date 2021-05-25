@@ -52,7 +52,7 @@ if __name__ == '__main__':
                           torch.nn.Linear(25, 25),
                           torch.nn.ReLU(),
                           torch.nn.Linear(25, 2),
-                          torch.nn.Tanh()
+                          torch.nn.Sigmoid()
                         )
     ### Define the loss
     criterion = torch.nn.MSELoss()

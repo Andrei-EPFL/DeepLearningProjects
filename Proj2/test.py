@@ -23,13 +23,13 @@ class Net(dl.Module):
         self.fc3 = dl.Linear(25, 25)
         self.relu3 = dl.ReLU()
         self.fc4 = dl.Linear(25, 2)
-        self.tanh = dl.Tanh()
+        self.sigmoid = dl.Sigmoid()
                          
     def forward(self, x):
         x = self.relu1(self.fc1(x))
         x = self.relu2(self.fc2(x))
         x = self.relu3(self.fc3(x))
-        x = self.tanh(self.fc4(x))
+        x = self.sigmoid(self.fc4(x))
         return x
 
     def param(self):
@@ -88,7 +88,7 @@ if __name__ == '__main__':
                            dl.Linear(25, 25),
                            dl.ReLU(),
                            dl.Linear(25, 2),
-                           dl.Tanh()
+                           dl.Sigmoid()
                         )
 
     ### Define the loss

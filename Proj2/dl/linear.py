@@ -7,41 +7,70 @@ from .module import Module
 from .ntensor import nTensor
 
 class Linear(Module):
-    """ Creates a Linear layer which applies a linear transformation 
-        of the input nTensor.
+    """
+    Module that applies a linear transformation 
+    
+    Description:
+
+        - OUT = IN * W^T  + B, where * is in general a matrix multiplication
+        - inherits from the Module base class
+
+
+    Attributes:
+
+    sqrtk: double
+        The square root of (1 / input_features)
+        Used to sample the the values of the weights and the bias
+
+    weights (W): nTensor, shape D_{L} x D_{L-1}
+        The weights (W) of the linear transformation
+
+    bias (B): nTensor, shape D_{L}
+        The bias (B) of the linear transformation
         
-            OUT = IN * W^T  + B, where * is in general a matrix multiplication,
-        W is a nTensor of weights and B is a nTensor with bias values.
-
-            The weights (of shape D_{L} x D_{L-1}, where L is the current layer and L-1 is the previous layer)
-        and the bias values (of shape D_{L}) are initially sampled from a uniform distribution
-        with the variance inversely proportional to the number of input features, in order
-        to diminish the effect of vanishing gradient in the backward pass. 
+        (where L is the current layer and L-1 is the previous layer)
+   
+    biasbool: bool
+        If true the bias is also used
+        If false only the weights are used 
         
-            At the initialization, the gradients with respect the weights and the biases
-        are set to zero using self.zero_grad(), implemented in the base Module.
 
-        The forward function:
-            - takes as input one nTensor (of shape N x D_{L-1}, where N is the number of samples
-        in the batch and stored in self.input) on which the linear transformation is applied;
+    Methods:
 
-            - the output is a nTensor (of shape N x D_{L}, stored in self.output) is obtained
-        after the linear transformation
+    forward:
+        Applies the linear transformation
 
-        The backward function: 
-            - takes as input a nTensor which is the gradient with respect
-        to the output of the current forward function;
+    backward:
+        Computes the gradient with respect the input
+    
+    param:
+        Returns the list with the weights and the bias
 
-            - the output is a nTensor representing the gradient with respect the input
-        nTensor of the forward function
-            - updates the gradients with respect the weights and biases
-            - stores the gradient with respect the input nTensor in self.input.grad
-
-        The param function:
-            - returns the weights and bias nTensors.
     """
     def __init__(self, input_features, output_features, biasbool=True):
+        """
+        Parameters:
+        
+        input_features: int
+            Number of input units
 
+        output_features: int
+            Number of output units
+
+        biasbool: bool
+            If true the bias is also used
+            If false only the weights are used        
+
+
+        Description:
+
+        - the bias and the weights are initially sampled from a uniform distribution
+        with the variance inversely proportional to the number of input features, in order
+        to diminish the effect of vanishing gradient in the backward pass. 
+        - the gradients with respect the weights and the biases
+        are set to zero using self.zero_grad() (implemented in the base Module).
+        """
+        
         super().__init__()
 
         #Initialize weights
@@ -53,6 +82,23 @@ class Linear(Module):
         self.zero_grad()
 
     def forward(self, input):
+        """
+        Applies the linear transformation
+        OUT = IN * W^T  + B
+
+        Parameters:
+
+        input: nTensor (shape N x D_{L-1}, N - the number of samples in the batch) 
+            Input to the Linear class
+
+        
+        Returns:
+        
+        output: nTensor (of shape N x D_{L})
+            The result of applying the linear transformation on the input
+        """
+
+        
         s = input.tensor.matmul(self.weights.tensor.t()).squeeze()
         if self.biasbool:
             s += self.bias.tensor
@@ -60,6 +106,27 @@ class Linear(Module):
         return nTensor(tensor=s, created_by=self)
 
     def backward(self, gradwrtoutput):
+        """
+        Computes the gradient with respect to the input
+
+        Description:
+        - updates the gradients with respect the weights and biases
+        - checks whether there is only one sample in the batch
+        and adapt the multiplications
+
+
+        Parameters:
+
+        input: nTensor
+            The gradient with respect to the output of the forward function;
+
+        
+        Returns:
+
+        output: nTensor
+            The gradient with respect to the input of the forward function
+        """
+
         grad_s = gradwrtoutput
         grad_x = nTensor(tensor=grad_s.tensor.matmul(self.weights.tensor))
 
@@ -77,6 +144,12 @@ class Linear(Module):
         return grad_x
 
     def param(self):
+        """
+        Returns:
+        
+        list with weights and bias nTensors.
+        """
+    
         if self.biasbool:
             return [self.weights, self.bias]
         

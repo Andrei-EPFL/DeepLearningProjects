@@ -78,7 +78,8 @@ if __name__ == '__main__':
     validation_labels = load("./data/validation_labels_float32_S42.pt").double()
 
     print(f"Number in: {train_labels.sum()}, Number out: {1000 - train_labels.sum()}")
-
+    print(train_input.shape)
+    exit()
     ### Define the model
     # model = Net()
     model = dl.Sequential(dl.Linear(2, 25),

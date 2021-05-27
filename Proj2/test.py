@@ -32,14 +32,6 @@ class Net(dl.Module):
         x = self.sigmoid(self.fc4(x))
         return x
 
-    def param(self):
-        params = []
-        for key, module in self.__dict__.items():
-            try:
-                params += module.param()
-            except:
-                continue
-        return params
 
 def generate_disc_set(nb, one_hot_encode=True):
     ''' 
@@ -79,9 +71,9 @@ if __name__ == '__main__':
 
     print(f"Number in: {train_labels.sum()}, Number out: {1000 - train_labels.sum()}")
     print(train_input.shape)
-    exit()
+    #exit()
     ### Define the model
-    # model = Net()
+    #model = Net()
     model = dl.Sequential(dl.Linear(2, 25),
                            dl.ReLU(),
                            dl.Linear(25, 25),
@@ -163,3 +155,5 @@ if __name__ == '__main__':
     for i in range(len(test_input)):
         outfile.write(f"{test_input[i,0]} {test_input[i,1]} {out_labels[i]} {test_labels[i]}\n")
     outfile.close()
+
+    

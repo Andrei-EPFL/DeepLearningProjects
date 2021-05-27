@@ -112,13 +112,26 @@ class Module(object):
             module = module.input.created_by
         return grad
 
+    
+
+    #def param(self):
+    
+    #    return []
+    
     def param(self):
         """
-        Returns an empty list
+        Finds the parameters of the module, returns empty list if
+        none are found.
         
         Can be overwritten by the child classes when necessary.
         """
-        return []
+        params = []
+        for key, module in self.__dict__.items():
+            try:
+                params += module.param()
+            except:
+                continue
+        return params
 
     def zero_grad(self):
         """

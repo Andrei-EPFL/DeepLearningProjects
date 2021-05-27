@@ -151,7 +151,7 @@ if __name__ == '__main__':
     print(f"Final test loss: {test_loss.tensor.item():.3f}\tFinal test acc: {test_accuracy:.2f}\tFinal test error {test_err:.2f}")
     
     ### Write the positions of points the true labels and the predicted labels
-    outfile = open("results/float64_dl_test_output_S42.dat", 'w')
-    for i in range(len(test_input)):
-        outfile.write(f"{test_input[i,0]} {test_input[i,1]} {out_labels[i]} {test_labels[i]}\n")
-    outfile.close()
+    # outfile = open("results/float64_dl_test_output_S42.dat", 'w')
+    # for i in range(len(test_input)):
+    #     outfile.write(f"{test_input[i,0]} {test_input[i,1]} {out_labels[i]} {test_labels[i]}\n")
+    # outfile.close()

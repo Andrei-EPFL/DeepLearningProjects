@@ -17,10 +17,11 @@ def plot_(ax, data_pt, data_dl):
 
     print(len(data_pt.loc[range_t_ndl,'x']))
     print(len(data_pt.loc[range_nt_dl,'x']))
-    ax.scatter(data_pt.loc[range_t_ndl,'x'], data_pt.loc[range_t_ndl,'y'], c = 'orange', s=10, label="t 1 & d 0")
-    ax.scatter(data_pt.loc[range_nt_dl,'x'], data_pt.loc[range_nt_dl,'y'], c = 'lime', s=10, label="t 0 & d 1")
-    ax.scatter(data_pt.loc[range_nt_ndl,'x'], data_pt.loc[range_nt_ndl,'y'], c = 'dodgerblue', s=10, label="t 0 & d 0")
-    ax.scatter(data_pt.loc[range_t_dl,'x'], data_pt.loc[range_t_dl,'y'], c = 'red', s=10, label="t 1 & d 1")
+    ax.scatter(data_pt.loc[range_t_ndl,'x'], data_pt.loc[range_t_ndl,'y'], c = 'green', s=20, label="t 1 & d 0")
+    ax.scatter(data_pt.loc[range_nt_ndl,'x'], data_pt.loc[range_nt_ndl,'y'], c = 'dodgerblue', s=20, label="t 0 & d 0")
+    ax.scatter(data_pt.loc[range_t_dl,'x'], data_pt.loc[range_t_dl,'y'], c = 'pink', s=20, label="t 1 & d 1")
+    ax.scatter(data_pt.loc[range_nt_dl,'x'], data_pt.loc[range_nt_dl,'y'], c = 'red', s=20, label="t 0 & d 1")
+
     ax.plot(a + 0.5, b + 0.5, color="grey")
 
 
@@ -44,11 +45,19 @@ data_pt64 = pd.read_csv("results/float64_pt_test_output_S42.dat", delim_whitespa
 
 
 
-fig, ax = plt.subplots(2, 1, figsize=(5,10))
+plt.rcParams.update({'font.size': 14})
+
+
+fig, ax = plt.subplots(1, 2, figsize=(8,4), sharey=True, gridspec_kw={"top":0.887,
+"bottom":0.097,
+"left":0.059,
+"right":0.981,
+"hspace":0.2,
+"wspace":0.0})
 
 plot_(ax[0],data_pt32, data_dl32)
 plot_(ax[1],data_pt64, data_dl64)
-ax[0].legend(loc="upper center", bbox_to_anchor=(0.23, 0.59, 0.5, 0.5), ncol=4)
+ax[0].legend(loc="upper center", bbox_to_anchor=(0.77, 0.65, 0.5, 0.5), ncol=4)
 
 #fig, ax = plt.subplots(1, 1, figsize=(5,5))
 

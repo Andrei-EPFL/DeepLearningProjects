@@ -1,0 +1,39 @@
+Folders:
+    notebooks:
+        - 01-analysis.ipynb:
+            jupyter notebook used to create the plots and perform analysis
+
+    results:
+        convnet: 
+        resnet :
+
+
+Files:
+
+    dlc_practical_prologue.py:
+        - scripts to generate the dataset
+    
+    helpers.py:
+        - scripts to generate the dataset
+
+    convnet.py:
+        - contains the ConvNet-based models:
+            NN, NN_ws, ConvNet_baseline
+    
+    resnet.py:
+        - contains the ResNet-based models:
+            ResNet_baseline, ResNet_ws
+
+    train.py:
+        - script with functions used to train the models
+
+    main.py:
+        - script file used to test different models
+    
+    main_baseline.py:
+        - script file used to test the baseline models (ResNet and ConvNet)
+
+    test.py:
+        - actual required test script    
+
+    

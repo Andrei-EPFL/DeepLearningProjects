@@ -1,6 +1,6 @@
 from torch import empty
 from torch import manual_seed, set_grad_enabled
-from torch import set_default_dtype, set_printoptions, float64
+from torch import set_default_dtype, set_printoptions, float64, float32
 from torch import load
 
 import math
@@ -23,23 +23,15 @@ class Net(dl.Module):
         self.fc3 = dl.Linear(25, 25)
         self.relu3 = dl.ReLU()
         self.fc4 = dl.Linear(25, 2)
-        self.tanh = dl.Tanh()
+        self.sigmoid = dl.Sigmoid()
                          
     def forward(self, x):
         x = self.relu1(self.fc1(x))
         x = self.relu2(self.fc2(x))
         x = self.relu3(self.fc3(x))
-        x = self.tanh(self.fc4(x))
+        x = self.sigmoid(self.fc4(x))
         return x
 
-    def param(self):
-        params = []
-        for key, module in self.__dict__.items():
-            try:
-                params += module.param()
-            except:
-                continue
-        return params
 
 def generate_disc_set(nb, one_hot_encode=True):
     ''' 
@@ -88,7 +80,7 @@ if __name__ == '__main__':
                            dl.Linear(25, 25),
                            dl.ReLU(),
                            dl.Linear(25, 2),
-                           dl.Tanh()
+                           dl.Sigmoid()
                         )
 
     ### Define the loss
@@ -123,7 +115,7 @@ if __name__ == '__main__':
             
             ### Call the backward pass (two possible methods)
             train_loss.backward()
-            # model.backward()
+            # model.backward(criterion.backward())
 
             ### Update the parameters
             for param in model.param():

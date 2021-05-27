@@ -1,0 +1,48 @@
+Folders:
+    data:
+        - contains the three data sets: train, validation, test
+        - the data sets are obtained with float32 precision and the random seed 42
+
+    resuls:
+        - float${PRECISION}_${MODEL}_test_output_S42.dat: 4 cols (x, y, prediction, true label); results of the test data set
+            PRECISION = 32 or 64; MODEL = pt or dl; pt - pytorch; dl - current framework
+        - out_dl_float${PRECISION}_S42.out: the stdout of the test.py
+        - test_output.png the figure obtained with plot_test_results.py and used in the report
+
+    dl: the package with the necessary files (additional documentation inside the files and in the report)
+        - __init__.py
+        - ntensor.py
+        - module.py
+        - activation.py
+        - container.py
+        - linear.py
+        - loss.py
+
+
+Files:
+
+    generate_data.py:
+        - script to generate the data in the "data" Folders
+    
+    plot_test_results.py:
+        - script to create the "test_output.png" figure starting from the results stored in "results" Folders
+
+    test_adversarial_example.py:
+        - script that trains the neural network as "test.py"
+        - additionally, it contains at the end an attempt to generate an adversarial example
+
+    test_backward_pass.py
+        - a simple script that computes using the backward pass the gradient with respect the input tensor
+        for both dl and PyTorch. 
+        - used to check consistency of the gradient with respect the input between dl and PyTorch 
+
+    test_torch.py:
+        - script with the PyTorch implementation of the same Neural Network as implemented in test.py using dl framework
+        - used to compare our framework (dl) with PyTorch
+
+    test.py:
+        - the actual required test file
+        - contains two implementations of the same Neural Network:
+                - using Sequential
+                - using a new class Net that inherits from Module base class.
+        

@@ -70,10 +70,9 @@ if __name__ == '__main__':
     validation_labels = load("./data/validation_labels_float32_S42.pt").double()
 
     print(f"Number in: {train_labels.sum()}, Number out: {1000 - train_labels.sum()}")
-    print(train_input.shape)
-    #exit()
+
     ### Define the model
-    #model = Net()
+    # model = Net()
     model = dl.Sequential(dl.Linear(2, 25),
                            dl.ReLU(),
                            dl.Linear(25, 25),
@@ -102,6 +101,7 @@ if __name__ == '__main__':
 
             ### Call the forward pass
             out = model(dl.nTensor(tensor=train_input.narrow(0, batch, batch_size)))
+            
             ### Compute the loss
             train_loss = criterion(out, dl.nTensor(tensor=train_target.narrow(0, batch, batch_size)))
             train_losses.append(train_loss.tensor.item())
@@ -155,5 +155,3 @@ if __name__ == '__main__':
     for i in range(len(test_input)):
         outfile.write(f"{test_input[i,0]} {test_input[i,1]} {out_labels[i]} {test_labels[i]}\n")
     outfile.close()
-
-    

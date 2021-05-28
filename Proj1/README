@@ -4,17 +4,17 @@ Folders:
             jupyter notebook used to create the plots and perform analysis
 
     results:
-        convnet: 
-        resnet :
+        convnet: the results of the convnet-based models
+        resnet : the results of the resnet-based models
 
 
 Files:
 
     dlc_practical_prologue.py:
-        - scripts to generate the dataset
+        - library with functions to generate the dataset
     
     helpers.py:
-        - scripts to generate the dataset
+        - a subset of functions from the previous library
 
     convnet.py:
         - contains the ConvNet-based models:
@@ -25,7 +25,7 @@ Files:
             ResNet_baseline, ResNet_ws
 
     train.py:
-        - script with functions used to train the models
+        - file with functions used to train the models
 
     main.py:
         - script file used to test different models
